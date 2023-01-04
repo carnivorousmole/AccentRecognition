@@ -1,0 +1,9 @@
+.DS_Store
+audios/
+features/
+metadata.json
+mfccs.csv
+models/
+requirements.txt
+testing_data/
+training_plots/
