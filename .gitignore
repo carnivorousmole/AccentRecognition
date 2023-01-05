@@ -4,6 +4,7 @@ features/
 metadata.json
 mfccs.csv
 models/
-requirements.txt
 testing_data/
 training_plots/
+
+__pycache__/
