@@ -30,6 +30,9 @@ from sklearn.preprocessing import LabelEncoder
 
 import constants
 
+from torchHHT import hht, visualization
+
+
 # To use Comet ML visualization and logging you have to follow the instructions from README.md
 # on how to set COMET_API_KEY, COMET_WORKSPACE, COMET_PROJECT_NAME environment variables
 # Alternatively, you can set these variables manually in the code here by uncommenting the lines below
@@ -53,14 +56,14 @@ def create_experiment():
     experiment.set_name(exptName)
 
 """Parameters to adjust"""
-LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_'  # what languages to use / fr_it_sp
-# LANG_SET = 'ru_po_64mel_'  # what languages to use / fr_it_sp
-FEATURES = 'mfcc_f0_cen_rol_chroma_rms_zcr'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_'  # what languages to use / fr_it_sp
+LANG_SET = 'ru_po_64mel_'  # what languages to use / fr_it_sp
+FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 80  # maximum number of audios of a language
 
 UNSILENCE = False
 
-WIN_LENGTH_MS = 25  # ms / 25
+WIN_LENGTH_MS = 25  # ms / 25 # time resolution is 
 OVERLAP_MS = 10  # ms / 10
 
 SAMPLE_RATE = 22050  # 22050 / 16000 [Hz]
@@ -144,7 +147,12 @@ def extract_features(audio_file):
         features.append(zcr)
     if 'fbe' in FEATURES:
         mel_s = derive_mel_s(audio_file, y)
+        print("mel_s: ",(mel_s.shape))
         features.append(mel_s)
+    if 'hil' in FEATURES:
+        hil_s = derive_hilbert_s(audio_file, y)
+        print("hil_s: ",(hil_s.shape))
+        features.append(hil_s)
 
     logger.debug('Concatenating extracted features...')
     features = np.vstack(features)
@@ -209,6 +217,23 @@ def derive_mfcc(audio_file, y):
     return mfcc_normalized
 
 
+def derive_hilbert_s(audio_file, y): 
+    """
+    Derives Hilbert Spectrum
+    """
+    num_samples = y.shape[0]
+    num_data_points = int(num_samples/HOP_LENGTH)
+    logger.debug(f'Extracting Hilbert-spectrum for {audio_file}...')
+    imfs, imfs_env, imfs_freq = hht.hilbert_huang(y, SAMPLE_RATE, num_imf=3)
+    lowest_imf = 2
+    highest_imf = 5
+    spectrum, t, f = hht.hilbert_spectrum(imfs_env[lowest_imf:highest_imf+1,:], imfs_freq[lowest_imf:highest_imf+1,:], SAMPLE_RATE, freq_lim = (0, 5000), num_data_points=num_data_points, freq_res = 100)
+    # visualization.plot_HilbertSpectrum(spectrum, t, f, 
+    #                                     save_spectrum="Hilbert_spectrum.png", 
+    #                                     save_marginal="Hilbert_marginal.png")
+    spectrum_normalized = normalize_feature_vectors(spectrum.numpy().transpose())
+    return spectrum_normalized
+
 def derive_mel_s(audio_file, y):
     """
     Derives Mel-Spectrogram of amplitude from each frame of an audio file.
@@ -219,8 +244,12 @@ def derive_mel_s(audio_file, y):
     :return: (numpy.ndarray) Vectors of normalized mel-spectrograms
     """
     logger.debug(f'Extracting Mel-spectrogram for {audio_file}...')
+    print(y.shape[0])
+    print(y.shape," ",HOP_LENGTH," ",WIN_LENGTH)
     mel_s = librosa.feature.melspectrogram(y=y, sr=SAMPLE_RATE, n_mels=N_MELS, hop_length=HOP_LENGTH,
                                            win_length=WIN_LENGTH, power=1.0)
+    print(mel_s.shape)
+
     if MEL_S_LOG:
         mel_s = librosa.power_to_db(mel_s)
     mel_s_normalized = normalize_feature_vectors(mel_s)

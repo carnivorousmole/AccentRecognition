@@ -7,3 +7,6 @@ models/
 requirements.txt
 testing_data/
 training_plots/
+__pycache__/
+accent-env/
+*.png

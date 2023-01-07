@@ -1,6 +1,6 @@
-import emd
 import numpy as np
 from scipy import ndimage
+import emd
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
