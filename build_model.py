@@ -66,7 +66,7 @@ LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
