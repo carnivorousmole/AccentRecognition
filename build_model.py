@@ -19,7 +19,7 @@ from keras.layers.convolutional import MaxPooling2D, Conv2D
 from keras.layers.core import Dense, Dropout, Flatten
 from keras.models import load_model, Sequential
 from keras.preprocessing.image import ImageDataGenerator
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 from loguru import logger
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectKBest
@@ -31,6 +31,7 @@ from sklearn.preprocessing import LabelEncoder
 import constants
 
 from torchHHT import hht, visualization
+from functools import partial
 
 
 # To use Comet ML visualization and logging you have to follow the instructions from README.md
@@ -38,7 +39,7 @@ from torchHHT import hht, visualization
 # Alternatively, you can set these variables manually in the code here by uncommenting the lines below
 os.environ["COMET_API_KEY"] = 'TYUfPqsMct71dzvR1sJsb6zBD'
 os.environ["COMET_WORKSPACE"] = 'dylanwalsh'
-os.environ["COMET_PROJECT_NAME"] = 'accent-recognition'
+os.environ["COMET_PROJECT_NAME"] = '31-Jan'
 
 USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
                and os.environ.get("COMET_PROJECT_NAME")
@@ -56,10 +57,16 @@ def create_experiment():
     experiment.set_name(exptName)
 
 """Parameters to adjust"""
-# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_'  # what languages to use / fr_it_sp
-LANG_SET = 'ru_po_64mel_'  # what languages to use / fr_it_sp
+# what languages to use
+# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+LANG_SET = 'en_fr_sp_ru_64mel_'
+# LANG_SET = 'en_sp_ar_mn_64mel_' 
+# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+# LANG_SET = 'ru_po_64mel_'  
+
+# FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 80  # maximum number of audios of a language
+MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -73,6 +80,7 @@ WIN_LENGTH = int(SAMPLE_RATE * 0.001 * WIN_LENGTH_MS)  # [25 ms window length]
 FRAME_SIZE = 75  # 30 / 50 / 70 / 100 / 150 / 200 / 300 / 500 [Size of feature segment]
 
 MEL_S_LOG = False
+HIL_S_LOG = True
 
 selection_method = 'UNIVARIATE'  # PCE / UNIVARIATE
 SCORE_FUNC = f_classif  # f_classif / mutual_info_classif [score function for univariate  feature selector]
@@ -90,6 +98,7 @@ MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
+saved_features_path = "./features/isolated_features/"
 
 def filter_df(df):
     """
@@ -109,7 +118,7 @@ def filter_df(df):
     return pd.concat(df_to_include)
 
 
-def extract_features(audio_file):
+def extract_features(audio_file,features_string):
     """
     Extracts features from audio files.
     Different kinds of features are concatenated subsequently.
@@ -124,34 +133,51 @@ def extract_features(audio_file):
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
     features = []
-    if 'mfcc' in FEATURES:
+    if 'mfcc' in features_string:
         mfccs = derive_mfcc(audio_file, y)
         features.append(mfccs)
-    if 'f0' in FEATURES:
+    if 'f0' in features_string:
         f0 = derive_f0(audio_file, y)
         features.append(f0)
-    if 'cen' in FEATURES:
+    if 'cen' in features_string:
         spectral_centroid = derive_spectral_centroid(audio_file, y)
         features.append(spectral_centroid)
-    if 'rol' in FEATURES:
+    if 'rol' in features_string:
         spectral_rolloff = derive_spectral_rolloff(audio_file, y)
         features.append(spectral_rolloff)
-    if 'chroma' in FEATURES:
+    if 'chroma' in features_string:
         chromagram = derive_chromagram(audio_file, y)
         features.append(chromagram)
-    if 'rms' in FEATURES:
+    if 'rms' in features_string:
         rms = derive_rms(audio_file, s)
         features.append(rms)
-    if 'zcr' in FEATURES:
+    if 'zcr' in features_string:
         zcr = derive_zcr(audio_file, y)
         features.append(zcr)
-    if 'fbe' in FEATURES:
-        mel_s = derive_mel_s(audio_file, y)
-        print("mel_s: ",(mel_s.shape))
+    if 'fbe' in features_string:
+        filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
+        if os.path.isfile(filepath):
+            # load the array from file
+            mel_s = np.load(filepath)
+            logger.debug('mel_s loaded from file...')
+        else:
+            mel_s = derive_mel_s(audio_file, y)
+            # save the array to file
+            np.save(filepath, mel_s)
         features.append(mel_s)
-    if 'hil' in FEATURES:
-        hil_s = derive_hilbert_s(audio_file, y)
-        print("hil_s: ",(hil_s.shape))
+
+    if 'hil' in features_string:
+        filepath = saved_features_path + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
+        # print("FILENAME IS: " +filepath)
+        if os.path.isfile(filepath):
+            # load the array from file
+            hil_s = np.load(filepath)
+            logger.debug('Hilbert Spectrum loaded from file...')
+        else:
+            hil_s = derive_hilbert_s(audio_file, y)
+            # save the array to file
+            np.save(filepath, hil_s)
+
         features.append(hil_s)
 
     logger.debug('Concatenating extracted features...')
@@ -216,23 +242,38 @@ def derive_mfcc(audio_file, y):
     mfcc_normalized = normalize_feature_vectors(mfcc)
     return mfcc_normalized
 
+def downsample(arr, N2):
+    N = arr.shape[1]  # width of the array
+    M = N // (N2)
+    result = np.zeros((arr.shape[0], N2))  # create a new array with the new width
+    for i in range(N2):
+        result[:, i] = np.mean(arr[:, i*M:(i+1)*M], axis=1)  # take the average of M consecutive elements
+        # TODO not sure if should be mean or sum...
+    return result
 
 def derive_hilbert_s(audio_file, y): 
     """
     Derives Hilbert Spectrum
     """
     num_samples = y.shape[0]
-    num_data_points = int(num_samples/HOP_LENGTH)
+    N = int(num_samples/HOP_LENGTH)+1
     logger.debug(f'Extracting Hilbert-spectrum for {audio_file}...')
-    imfs, imfs_env, imfs_freq = hht.hilbert_huang(y, SAMPLE_RATE, num_imf=3)
+    imfs, imfs_env, imfs_freq = hht.hilbert_huang(y, SAMPLE_RATE, num_imf=5)
     lowest_imf = 2
     highest_imf = 5
-    spectrum, t, f = hht.hilbert_spectrum(imfs_env[lowest_imf:highest_imf+1,:], imfs_freq[lowest_imf:highest_imf+1,:], SAMPLE_RATE, freq_lim = (0, 5000), num_data_points=num_data_points, freq_res = 100)
+    spectrum, t, f = hht.hilbert_spectrum(imfs_env, imfs_freq, SAMPLE_RATE, freq_res = 100)
+    # spectrum, t, f = hht.hilbert_spectrum(imfs_env[lowest_imf:highest_imf+1,:], imfs_freq[lowest_imf:highest_imf+1,:], SAMPLE_RATE, freq_lim = (0, 5000), freq_res = 100)
     # visualization.plot_HilbertSpectrum(spectrum, t, f, 
     #                                     save_spectrum="Hilbert_spectrum.png", 
     #                                     save_marginal="Hilbert_marginal.png")
-    spectrum_normalized = normalize_feature_vectors(spectrum.numpy().transpose())
-    return spectrum_normalized
+    hil_s = spectrum.numpy().transpose()
+    # hil_s = downsample(np.rot90( spectrum.numpy(), k=0, axes=(0, 1)),N) # downsample to feature vector size
+    hil_s = downsample(hil_s,N) # downsample to feature vector size
+
+    if HIL_S_LOG:
+        hil_s = librosa.power_to_db(hil_s)
+    hil_s_normalized = normalize_feature_vectors(hil_s)
+    return hil_s_normalized
 
 def derive_mel_s(audio_file, y):
     """
@@ -244,17 +285,15 @@ def derive_mel_s(audio_file, y):
     :return: (numpy.ndarray) Vectors of normalized mel-spectrograms
     """
     logger.debug(f'Extracting Mel-spectrogram for {audio_file}...')
-    print(y.shape[0])
-    print(y.shape," ",HOP_LENGTH," ",WIN_LENGTH)
+    # print(y.shape[0])
+    # print(y.shape," ",HOP_LENGTH," ",WIN_LENGTH)
     mel_s = librosa.feature.melspectrogram(y=y, sr=SAMPLE_RATE, n_mels=N_MELS, hop_length=HOP_LENGTH,
                                            win_length=WIN_LENGTH, power=1.0)
-    print(mel_s.shape)
 
     if MEL_S_LOG:
         mel_s = librosa.power_to_db(mel_s)
     mel_s_normalized = normalize_feature_vectors(mel_s)
     return mel_s_normalized
-
 
 def derive_f0(audio_file, y):
     """
@@ -400,7 +439,9 @@ def preprocess_new_data(x, y):
 
     logger.debug('Loading WAV files...')
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    x = pool.map(extract_features, x)
+
+    extract_features_fixed =partial(extract_features, features_string=FEATURES) # fix features argument
+    x = pool.map(extract_features_fixed, x)
     if any(feature is None for feature in x):
         logger.error("Some audio files are missing. See the log warnings above and fix the dataset before proceeding")
         return None
@@ -797,8 +838,9 @@ def main():
 
     y_predicted = np.argmax(trained_model.predict(x_test.reshape(x_test.shape + (1,)), verbose=1), axis=1)
     y_test_bool = np.argmax(y_test, axis=1)
-
-    logger.info(f'Metrics:\n{classification_report(y_test_bool, y_predicted, target_names=languages_classes_mapping)}')
+    report = classification_report(y_test_bool, y_predicted, target_names=languages_classes_mapping, output_dict=True)
+    logger.info(f'Metrics:\n{report}')
+    log_classification_report(y_test_bool, y_predicted, target_names=languages_classes_mapping)
     logger.debug('Printing statistics (training ans testing counters)...')
     logger.info(f'Training samples: {train_count}')
     logger.info(f'Testing samples: {test_count}')
@@ -811,6 +853,8 @@ def main():
         confusion_matrix = np.array(cm.to_json()['matrix'])
 
         experiment.log_confusion_matrix(matrix=cm)
+
+        # log_classification_report(y_train, trained_model.predict(x_train.reshape(x_test.shape + (1,)), verbose=1))
 
         logger.debug('Accuracy to beat = (samples of most common class) / (all samples)')
         acc_to_beat = np.amax(np.sum(confusion_matrix, axis=1) / np.sum(confusion_matrix))
@@ -840,10 +884,21 @@ def main():
     logger.info('PROB: ')
     logger.info(y_predicted_prob[:10])
 
-def run(lang_set_config):
+
+def run(lang_set_config,features_config):
     global LANG_SET
+    global FEATURES
     LANG_SET = lang_set_config
+    FEATURES = features_config
     main()
+
+def log_classification_report(y_test_bool, y_predicted, target_names):
+    report = classification_report(y_test_bool, y_predicted, target_names=target_names, output_dict=True)
+    for key, value in report.items():
+      if key == "accuracy":
+        experiment.log_metric(key, value)
+      else:
+        experiment.log_metrics(value, prefix=f'{key}')
 
 
 if __name__ == '__main__':

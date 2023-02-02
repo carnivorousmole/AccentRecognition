@@ -26,7 +26,7 @@ def get_samples_references():
         a_hyperlink = reference.find_all('a')
         for r in a_hyperlink:
             samples_references.append(r)  # .text.replace(',', '')
-    logger.debug(f'[{samples_references}]')
+    # logger.debug(f'[{samples_references}]')
 
 
 def create_audio_directory():
