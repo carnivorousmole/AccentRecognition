@@ -448,9 +448,13 @@ def preprocess_new_data(x, y):
         return None
 
     logger.debug('Making segments of feature vectors...')
-    x_segmented, y_segmented = split_into_matrices(x, y_categorical)
+    # x_segmented, y_segmented = split_into_matrices(x, y_categorical)
+    # x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+    x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
+    x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
+    x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
 
-    x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+
 
     train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
     test_count = Counter([np.where(y == 1)[0][0] for y in y_test])
