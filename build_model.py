@@ -40,7 +40,7 @@ from functools import partial
 # Alternatively, you can set these variables manually in the code here by uncommenting the lines below
 os.environ["COMET_API_KEY"] = 'TYUfPqsMct71dzvR1sJsb6zBD'
 os.environ["COMET_WORKSPACE"] = 'dylanwalsh'
-os.environ["COMET_PROJECT_NAME"] = '31-Jan'
+os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+str(datetime.datetime.now().month)
 
 USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
                and os.environ.get("COMET_PROJECT_NAME")
