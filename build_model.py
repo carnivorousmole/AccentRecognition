@@ -118,6 +118,8 @@ def filter_df(df):
         df_to_include.append(df[df.language == lang_fullname][:MAX_PER_LANG])
     return pd.concat(df_to_include)
 
+def shorten_array(array, width):
+    return [row[:width] for row in array]
 
 def extract_features(audio_file,features_string):
     """
@@ -133,6 +135,8 @@ def extract_features(audio_file,features_string):
     y, sr = librosa.load(audio_file, sr=None)
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
+
+    y = shorten_array(y,300) # shorten the length of the clip
     features = []
     if 'mfcc' in features_string:
         mfccs = derive_mfcc(audio_file, y)
