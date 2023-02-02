@@ -59,8 +59,8 @@ def create_experiment():
 
 """Parameters to adjust"""
 # what languages to use
-# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-LANG_SET = 'en_fr_sp_ru_64mel_'
+LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+# LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
