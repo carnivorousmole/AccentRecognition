@@ -140,7 +140,6 @@ def extract_features(audio_file,features_string):
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
     y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
-    print("The shape is" + y.shape)
 
     features = []
     if 'mfcc' in features_string:
