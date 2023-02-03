@@ -99,6 +99,8 @@ MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
+NUM_SECONDS = 3 #the number of seconds of the clip to use
+
 saved_features_path = "./features/isolated_features/"
 
 def filter_df(df):
@@ -118,8 +120,9 @@ def filter_df(df):
         df_to_include.append(df[df.language == lang_fullname][:MAX_PER_LANG])
     return pd.concat(df_to_include)
 
-def shorten_array(array, width):
-    return [row[:width] for row in array]
+def trim_sound(y, sr, n_seconds):
+    samples = sr * n_seconds
+    return y[:samples]
 
 def extract_features(audio_file,features_string):
     """
@@ -136,14 +139,15 @@ def extract_features(audio_file,features_string):
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
-    y = shorten_array(y,300) # shorten the length of the clip
+    y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
+    print("The shape is" + y.shape)
+
     features = []
     if 'mfcc' in features_string:
         mfccs = derive_mfcc(audio_file, y)
         features.append(mfccs)
     if 'f0' in features_string:
         f0 = derive_f0(audio_file, y)
-        features.append(f0)
     if 'cen' in features_string:
         spectral_centroid = derive_spectral_centroid(audio_file, y)
         features.append(spectral_centroid)

@@ -7,6 +7,8 @@ librosa==0.8.1
 loguru~=0.6
 lxml~=4.9
 matplotlib~=3.3.3
+#added for laptop
+numba==0.43.1
 # numpy==1.23.5
 # pandas==1.1.5 - had to explicitly install this as latest version
 pandas
@@ -14,7 +16,8 @@ protobuf==3.19.4
 pydub~=0.25
 requests~=2.28
 scikit-learn~=1.1
-scipy~=1.9
+# scipy~=1.9 wasnt working on laptop
+scipy==1.8
 unsilence~=1.0
 
 # TensorFlow must be installed either manually or by uncommenting the following lines
