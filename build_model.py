@@ -38,9 +38,9 @@ from functools import partial
 # To use Comet ML visualization and logging you have to follow the instructions from README.md
 # on how to set COMET_API_KEY, COMET_WORKSPACE, COMET_PROJECT_NAME environment variables
 # Alternatively, you can set these variables manually in the code here by uncommenting the lines below
-os.environ["COMET_API_KEY"] = 'TYUfPqsMct71dzvR1sJsb6zBD'
-os.environ["COMET_WORKSPACE"] = 'dylanwalsh'
-os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+str(datetime.datetime.now().month)
+os.environ["COMET_API_KEY"] = 'hMtnaNF5Fdgy1BQdb1sCb0MEX'
+os.environ["COMET_WORKSPACE"] = 'carnivorousmole'
+os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+datetime.datetime.now().strftime("%b")
 
 USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
                and os.environ.get("COMET_PROJECT_NAME")
@@ -455,8 +455,12 @@ def preprocess_new_data(x, y):
         return None
 
     logger.debug('Making segments of feature vectors...')
+
+    # TRAIN TEST SPLIT VARIATIONS
+    # A - segment first then split into train and test
     # x_segmented, y_segmented = split_into_matrices(x, y_categorical)
     # x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+    # B - split into train and test then segment
     x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
     x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
     x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
