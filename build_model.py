@@ -907,6 +907,7 @@ def main():
 
 
 def run(lang_set_config,features_config):
+    #could make these arguments optional here include defaults for everything?
     global LANG_SET
     global FEATURES
     LANG_SET = lang_set_config
