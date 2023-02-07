@@ -60,6 +60,7 @@ def create_experiment():
 """Parameters to adjust"""
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
+PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 
 
 # what languages to use
@@ -461,13 +462,15 @@ def preprocess_new_data(x, y):
     logger.debug('Making segments of feature vectors...')
 
     # TRAIN TEST SPLIT VARIATIONS
-    # A - segment first then split into train and test
-    # x_segmented, y_segmented = split_into_matrices(x, y_categorical)
-    # x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
-    # B - split into train and test then segment
-    x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
-    x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
-    x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
+    if(PRE_SEGMENT_DATA):
+        # A - segment first then split into train and test
+        x_segmented, y_segmented = split_into_matrices(x, y_categorical)
+        x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+    else:
+        # B - split into train and test then segment
+        x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
+        x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
+        x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
 
     train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
     test_count = Counter([np.where(y == 1)[0][0] for y in y_test])
