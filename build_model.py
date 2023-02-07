@@ -58,6 +58,10 @@ def create_experiment():
     experiment.set_name(exptName)
 
 """Parameters to adjust"""
+# Overwrite Files Option
+OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
+
+
 # what languages to use
 LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
@@ -465,8 +469,6 @@ def preprocess_new_data(x, y):
     x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
     x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
 
-
-
     train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
     test_count = Counter([np.where(y == 1)[0][0] for y in y_test])
 
@@ -816,7 +818,7 @@ def main():
     logger.debug('Getting input data from file in case it has already been retrieved.'
                  ' Otherwise preprocessing audios to get this data...')
 
-    if not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
+    if OVERWRITE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
         df = pd.read_csv(constants.AUDIOS_INFO_FILE_NAME)
         df = filter_df(df)
         audio_paths = df.path if not UNSILENCE else df.path_unsilenced
@@ -835,7 +837,7 @@ def main():
         x_train, x_test = select_features(x_train, y_train, x_test)
         x_train, x_test = create_segments_after_selection((x_train, x_test))
 
-    if not Path.exists(Path(model_file)):
+    if OVERWRITE_FILES or not Path.exists(Path(model_file)):
         logger.debug('Training model...')
         trained_model = train_model(np.array(x_train), np.array(y_train), np.array(x_test), np.array(y_test))
         trained_model.summary()
