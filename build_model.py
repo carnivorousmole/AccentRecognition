@@ -910,7 +910,6 @@ def main():
 
 
 def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME):
-    #could make these arguments optional here include defaults for everything?
     global LANG_SET
     global FEATURES
     global NUM_SECONDS
@@ -918,6 +917,7 @@ def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_confi
 
     EXPT_NAME = expt_name_config
     LANG_SET = lang_set_config
+    print("HERE WE HAVE SET LANG_SET TO: " +LANG_SET +" from config: " + lang_set_config)
     FEATURES = features_config
     NUM_SECONDS = num_seconds_config
     main()
