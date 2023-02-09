@@ -41,7 +41,6 @@ from functools import partial
 os.environ["COMET_API_KEY"] = 'hMtnaNF5Fdgy1BQdb1sCb0MEX'
 os.environ["COMET_WORKSPACE"] = 'carnivorousmole'
 os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+datetime.datetime.now().strftime("%b")
-EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
 
 
 USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
@@ -106,6 +105,9 @@ PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
 NUM_SECONDS = 3 #the number of seconds of the clip to use
+
+EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
+
 
 saved_features_path = "./features/isolated_features/"
 
