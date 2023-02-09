@@ -60,7 +60,7 @@ def create_experiment():
 """Parameters to adjust"""
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
-PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
+PRE_SEGMENT_DATA = False # If set to true, the data will be segmented prior to train test split
 
 
 # what languages to use
@@ -144,9 +144,7 @@ def extract_features(audio_file,features_string):
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
-    print("Before trimming length y is: ",len(y))
     y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
-    print("AFter trimming length y is: ",len(y))
 
     features = []
     if 'mfcc' in features_string:
