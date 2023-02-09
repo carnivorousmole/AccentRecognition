@@ -41,6 +41,8 @@ from functools import partial
 os.environ["COMET_API_KEY"] = 'hMtnaNF5Fdgy1BQdb1sCb0MEX'
 os.environ["COMET_WORKSPACE"] = 'carnivorousmole'
 os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+datetime.datetime.now().strftime("%b")
+EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
+
 
 USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
                and os.environ.get("COMET_PROJECT_NAME")
@@ -53,9 +55,8 @@ def create_experiment():
             workspace=os.environ["COMET_WORKSPACE"],
             project_name=os.environ["COMET_PROJECT_NAME"]
         )
-    exptName = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
-    logger.debug('Naming COMET expt: ' + exptName)
-    experiment.set_name(exptName)
+    logger.debug('Naming COMET expt: ' + EXPT_NAME)
+    experiment.set_name(EXPT_NAME)
 
 """Parameters to adjust"""
 # Overwrite Files Option
@@ -908,12 +909,17 @@ def main():
     logger.info(y_predicted_prob[:10])
 
 
-def run(lang_set_config,features_config):
+def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME):
     #could make these arguments optional here include defaults for everything?
     global LANG_SET
     global FEATURES
+    global NUM_SECONDS
+    global EXPT_NAME
+
+    EXPT_NAME = expt_name_config
     LANG_SET = lang_set_config
     FEATURES = features_config
+    NUM_SECONDS = num_seconds_config
     main()
 
 def log_classification_report(y_test_bool, y_predicted, target_names):

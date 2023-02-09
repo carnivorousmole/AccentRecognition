@@ -46,11 +46,19 @@ def mutliclass_features_test():
     for f in FEATURES:
         run("sp_ru_mn_fr_ko_ar_en_64mel_",f + "_hil")
 
+def clip_length_test():
+    for seconds in range(1,10):
+        run(num_seconds_config = seconds, expt_name_config="CL_test_"+str(seconds))
+
+
+
+
 
 if __name__ == '__main__':
     # english_test()
     # mutliclass_features_test()
-    individual_features_test()
+    # individual_features_test()
+    clip_length_test()
 
 # iterate over the set of strings
 # for string in strings:
