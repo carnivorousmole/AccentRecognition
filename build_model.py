@@ -64,9 +64,9 @@ PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to tr
 
 
 # what languages to use
-LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
-# LANG_SET = 'en_sp_ar_mn_64mel_' 
+LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
@@ -144,7 +144,9 @@ def extract_features(audio_file,features_string):
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
+    print("Before trimming length y is: ",len(y))
     y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
+    print("AFter trimming length y is: ",len(y))
 
     features = []
     if 'mfcc' in features_string:
