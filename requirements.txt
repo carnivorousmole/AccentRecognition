@@ -23,9 +23,12 @@ scipy~=1.9 # wasnt working on laptop
 # scipy==1.8 # added for laptop
 unsilence~=1.0
 
+# added for HHT
+torch
+
 # TensorFlow must be installed either manually or by uncommenting the following lines
 # Uncomment next line for all the Operating Systems and architectures other than macOS and Apple Silicon
 # tensorflow==2.8.4
 # Uncomment next two lines only for Apple Silicon processor
-# tensorflow-macos~=2.8.0 specifically installed using line from git
-# tensorflow-metal~=0.4
+tensorflow-macos~=2.8.0 
+tensorflow-metal~=0.4
