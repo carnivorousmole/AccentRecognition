@@ -8,7 +8,7 @@ SAMPLE_FILE_NAME = '{}.mp3'
 
 LANGUAGES = {
     'ar': 'arabic',
-    'bn': 'bengali',
+    # 'bn': 'bengali',
     'bu': 'bulgarian',
     # 'ch': 'chinese',
     # 'da': 'dari',
