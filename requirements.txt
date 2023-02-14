@@ -29,6 +29,6 @@ torch
 # TensorFlow must be installed either manually or by uncommenting the following lines
 # Uncomment next line for all the Operating Systems and architectures other than macOS and Apple Silicon
 # tensorflow==2.8.4
-# Uncomment next two lines only for Apple Silicon processor
-tensorflow-macos~=2.8.0 
-tensorflow-metal~=0.4
+# Uncomment next two lines only for Apple Silicon processor - seems to work best when dont afterwards separately
+# tensorflow-macos==2.8.0 
+# tensorflow-metal==0.4
