@@ -19,7 +19,7 @@ from keras.layers.convolutional import MaxPooling2D, Conv2D
 from keras.layers.core import Dense, Dropout, Flatten
 from keras.models import load_model, Sequential
 from keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.utils import to_categorical
+from keras.utils.np_utils import to_categorical
 from loguru import logger
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectKBest
@@ -53,26 +53,29 @@ def create_experiment():
             workspace=os.environ["COMET_WORKSPACE"],
             project_name=os.environ["COMET_PROJECT_NAME"]
         )
-    exptName = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
-    logger.debug('Naming COMET expt: ' + exptName)
-    experiment.set_name(exptName)
+    logger.debug('Naming COMET expt: ' + EXPT_NAME)
+    experiment.set_name(EXPT_NAME)
 
 """Parameters to adjust"""
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
-PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 
+SEGMENT_DATA = True # If set to False, the data will not be split into frames at all
+PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
+# Shortening Clips Option
+SHORTEN_CLIPS = True # Shortens the clips 
+NUM_SECONDS = 10 #the number of seconds of the clip to use
 
 # what languages to use
-LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-# LANG_SET = 'ru_po_64mel_'  
+LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 150  # maximum number of audios of a language
+MAX_PER_LANG = 10  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -104,9 +107,7 @@ MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
-SHORTEN_CLIPS = False # Shortens the clips 
-NUM_SECONDS = 3 #the number of seconds of the clip to use
-
+EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
 saved_features_path = "./features/isolated_features/"
 
 def filter_df(df):
@@ -171,27 +172,29 @@ def extract_features(audio_file,features_string):
         features.append(zcr)
     if 'fbe' in features_string:
         filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
-        if os.path.isfile(filepath) and not OVERWRITE_FILES:
-            # load the array from file
-            mel_s = np.load(filepath)
-            logger.debug('mel_s loaded from file...')
-        else:
+        if OVERWRITE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
             np.save(filepath, mel_s)
+        else:
+            # load the array from file
+            mel_s = np.load(filepath)
+            logger.debug('mel_s loaded from file...')
+
         features.append(mel_s)
 
     if 'hil' in features_string:
         filepath = saved_features_path + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
         # print("FILENAME IS: " +filepath)
-        if os.path.isfile(filepath) and not OVERWRITE_FILES:
-            # load the array from file
-            hil_s = np.load(filepath)
-            logger.debug('Hilbert Spectrum loaded from file...')
-        else:
+        if OVERWRITE_FILES or not os.path.isfile(filepath):
             hil_s = derive_hilbert_s(audio_file, y)
             # save the array to file
             np.save(filepath, hil_s)
+        else:
+            # load the array from file
+            hil_s = np.load(filepath)
+            logger.debug('Hilbert Spectrum loaded from file...')
+
 
         features.append(hil_s)
 
@@ -464,16 +467,20 @@ def preprocess_new_data(x, y):
     logger.debug('Making segments of feature vectors...')
 
     # TRAIN TEST SPLIT VARIATIONS
-    if(PRE_SEGMENT_DATA):
-        # A - segment first then split into train and test
-        x_segmented, y_segmented = split_into_matrices(x, y_categorical)
-        x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+    if(SEGMENT_DATA):
+        if(PRE_SEGMENT_DATA):
+            # A - segment first then split into train and test
+            x_segmented, y_segmented = split_into_matrices(x, y_categorical)
+            x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+        else:
+            # B - split into train and test then segment
+            x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
+            x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
+            x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
     else:
-        # B - split into train and test then segment
-        x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
-        x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
-        x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=1234)
 
+    logger.debug(f'Train shape: {len(y_train)}')
     train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
     test_count = Counter([np.where(y == 1)[0][0] for y in y_test])
 
@@ -908,11 +915,17 @@ def main():
     logger.info(y_predicted_prob[:10])
 
 
-def run(lang_set_config,features_config):
+def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME):
     global LANG_SET
     global FEATURES
+    global NUM_SECONDS
+    global EXPT_NAME
+
+    EXPT_NAME = expt_name_config
     LANG_SET = lang_set_config
+    print("HERE WE HAVE SET LANG_SET TO: " +LANG_SET +" from config: " + lang_set_config)
     FEATURES = features_config
+    NUM_SECONDS = num_seconds_config
     main()
 
 def log_classification_report(y_test_bool, y_predicted, target_names):
