@@ -169,7 +169,7 @@ def extract_features(audio_file,features_string):
         features.append(zcr)
     if 'fbe' in features_string:
         filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
-        if os.path.isfile(filepath):
+        if os.path.isfile(filepath) and not OVERWRITE_FILES:
             # load the array from file
             mel_s = np.load(filepath)
             logger.debug('mel_s loaded from file...')
@@ -182,7 +182,7 @@ def extract_features(audio_file,features_string):
     if 'hil' in features_string:
         filepath = saved_features_path + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
         # print("FILENAME IS: " +filepath)
-        if os.path.isfile(filepath):
+        if os.path.isfile(filepath) and not OVERWRITE_FILES:
             # load the array from file
             hil_s = np.load(filepath)
             logger.debug('Hilbert Spectrum loaded from file...')
