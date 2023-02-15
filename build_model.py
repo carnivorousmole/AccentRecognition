@@ -59,7 +59,7 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 
 
