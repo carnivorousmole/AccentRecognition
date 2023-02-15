@@ -57,6 +57,19 @@ def create_experiment():
     experiment.set_name(EXPT_NAME)
 
 """Parameters to adjust"""
+"""
+two main issues at the moment; 
+when segmentation is turned off, the shape is messed up 
+line 484, in <listcomp>
+    train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
+IndexError: index 0 is out of bounds for axis 0 with size 0
+
+when the clip is shortened too much there is a different error
+...
+history = model.fit(data_generator.flow(x_train, y_train, batch_size=BATCH_SIZE),
+...
+TypeError: Cannot convert 0.9375 to EagerTensor of dtype int64
+"""
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 
@@ -64,7 +77,7 @@ SEGMENT_DATA = True # If set to False, the data will not be split into frames at
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
 SHORTEN_CLIPS = True # Shortens the clips 
-NUM_SECONDS = 10 #the number of seconds of the clip to use
+NUM_SECONDS = 3 #the number of seconds of the clip to use
 
 # what languages to use
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
