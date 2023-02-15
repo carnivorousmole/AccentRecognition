@@ -59,7 +59,7 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 
 
@@ -104,6 +104,7 @@ MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
+SHORTEN_CLIPS = False # Shortens the clips 
 NUM_SECONDS = 3 #the number of seconds of the clip to use
 
 saved_features_path = "./features/isolated_features/"
@@ -144,7 +145,8 @@ def extract_features(audio_file,features_string):
     y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
-    y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
+    if(SHORTEN_CLIPS):
+        y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
 
     features = []
     if 'mfcc' in features_string:
