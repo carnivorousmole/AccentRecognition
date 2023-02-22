@@ -26,6 +26,9 @@ unsilence~=1.0
 # added for HHT
 torch
 
+# added for image processing
+opencv-python
+
 # TensorFlow must be installed either manually or by uncommenting the following lines
 # Uncomment next line for all the Operating Systems and architectures other than macOS and Apple Silicon
 # tensorflow==2.8.4
