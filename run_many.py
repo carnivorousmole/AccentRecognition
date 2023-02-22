@@ -48,7 +48,7 @@ def mutliclass_features_test():
 
 def clip_length_test():
     for seconds in range(1,10):
-        run(num_seconds_config = seconds, expt_name_config="CL_test_"+str(seconds))
+        run(lang_set_config= "ar_ko_mn_en_64mel_", num_seconds_config = seconds, expt_name_config="CL_test_"+str(seconds),project_name_config="20_feb_CL_B")
 
 
 
