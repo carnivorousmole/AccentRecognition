@@ -1,5 +1,6 @@
 from comet_ml import ConfusionMatrix, Experiment
 
+import cv2
 import os
 import multiprocessing
 import time
@@ -40,10 +41,9 @@ from functools import partial
 # Alternatively, you can set these variables manually in the code here by uncommenting the lines below
 os.environ["COMET_API_KEY"] = 'hMtnaNF5Fdgy1BQdb1sCb0MEX'
 os.environ["COMET_WORKSPACE"] = 'carnivorousmole'
-os.environ["COMET_PROJECT_NAME"] = str(datetime.datetime.now().day)+"-"+datetime.datetime.now().strftime("%b")
+COMET_PROJECT_NAME= str(datetime.datetime.now().day)+"-"+datetime.datetime.now().strftime("%b")
 
-USE_COMET_ML = os.environ.get("COMET_API_KEY") and os.environ.get("COMET_WORKSPACE") \
-               and os.environ.get("COMET_PROJECT_NAME")
+USE_COMET_ML = True
 
 def create_experiment():
     if USE_COMET_ML:
@@ -51,7 +51,7 @@ def create_experiment():
         experiment = Experiment(
             api_key=os.environ["COMET_API_KEY"],
             workspace=os.environ["COMET_WORKSPACE"],
-            project_name=os.environ["COMET_PROJECT_NAME"]
+            project_name= COMET_PROJECT_NAME
         )
     logger.debug('Naming COMET expt: ' + EXPT_NAME)
     experiment.set_name(EXPT_NAME)
@@ -73,11 +73,11 @@ TypeError: Cannot convert 0.9375 to EagerTensor of dtype int64
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 
-SEGMENT_DATA = True # If set to False, the data will not be split into frames at all
+SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
 SHORTEN_CLIPS = True # Shortens the clips 
-NUM_SECONDS = 3 #the number of seconds of the clip to use
+NUM_SECONDS = 5 #the number of seconds of the clip to use
 
 # what languages to use
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
@@ -88,7 +88,7 @@ LANG_SET = 'ru_po_64mel_'
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 10  # maximum number of audios of a language
+MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -184,11 +184,14 @@ def extract_features(audio_file,features_string):
         zcr = derive_zcr(audio_file, y)
         features.append(zcr)
     if 'fbe' in features_string:
-        filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
+        filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.png'))
         if OVERWRITE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
-            np.save(filepath, mel_s)
+            # np.save(filepath, mel_s)
+            mel_s_as_int8 = mel_s.astype(np.uint8)
+            cv2.imwrite(filepath, mel_s_as_int8)
+
         else:
             # load the array from file
             mel_s = np.load(filepath)
@@ -483,15 +486,28 @@ def preprocess_new_data(x, y):
     if(SEGMENT_DATA):
         if(PRE_SEGMENT_DATA):
             # A - segment first then split into train and test
+            # print("type of x and y: ", type(x)," ", type(y))
             x_segmented, y_segmented = split_into_matrices(x, y_categorical)
+            # print("type of seg x and y: ", type(x_segmented)," ", type(y_segmented))
             x_train, x_test, y_train, y_test = train_test_split(x_segmented, y_segmented, test_size=0.25, random_state=1234)
+            # print("type of train x and y: ", type(x_train)," ", type(y_train))
+            # print("type of test x and y: ", type(x_test)," ", type(y_test))
+            # type of x and y:  <class 'list'>   <class 'pandas.core.series.Series'>
+            # type of seg x and y:  <class 'list'>   <class 'list'>
+            # type of train x and y:  <class 'list'>   <class 'list'>
+            # type of test x and y:  <class 'list'>   <class 'list'>
+
         else:
             # B - split into train and test then segment
             x_train_initial, x_test_initial, y_train_initial, y_test_initial = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
             x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
             x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
     else:
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=1234)
+        x_train, x_test, y_train, y_test = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
+        # print("type of train x and y: ", type(x_train)," ", type(y_train))
+        # print("type of test x and y: ", type(x_test)," ", type(y_test))
+        # type of train x and y:  <class 'list'>   <class 'numpy.ndarray'>
+        # type of test x and y:  <class 'list'>   <class 'numpy.ndarray'>
 
     logger.debug(f'Train shape: {len(y_train)}')
     train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
@@ -687,6 +703,7 @@ def train_model(x_train, y_train, x_validation, y_validation):
     data_generator = ImageDataGenerator(width_shift_range=0.2)
 
     logger.debug('Training model...')
+    print("IS THIS GUY THE PROBLEM: " + str(x_train.shape[0] / BATCH_SIZE))
     history = model.fit(data_generator.flow(x_train, y_train, batch_size=BATCH_SIZE),
                         steps_per_epoch=x_train.shape[0] / BATCH_SIZE, epochs=EPOCHS,
                         callbacks=[es, time_history], validation_data=(x_validation, y_validation))
@@ -710,18 +727,26 @@ def build_model(input_shape, num_classes):
     :return: Built Keras 2D CNN model
     """
     model = Sequential()
+    # model.add(Conv2D(filters = 32, kernel_size = (5,5),padding = 'Same',activation ='relu', input_shape = (256,256,3)))
     model.add(Conv2D(32, kernel_size=KERNEL_SIZE, activation='relu',
                      data_format="channels_last",
                      input_shape=input_shape))
     model.add(BatchNormalization())
+    # model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(MaxPooling2D(pool_size=POOL_SIZE))
+    # model.add(Conv2D(filters = 32, kernel_size = (5,5),padding = 'Same',activation ='relu', input_shape = (256,256,3)))
     model.add(Conv2D(64, kernel_size=KERNEL_SIZE, activation='relu'))
     model.add(BatchNormalization())
+    # model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
     model.add(MaxPooling2D(pool_size=POOL_SIZE))
     model.add(Dropout(DROPOUT))
+    # model.add(Flatten())
     model.add(Flatten())
+    # model.add(Dense(512))
+    # model.add(Activation('relu'))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(DROPOUT))
+    # model.add(Dense(5, activation = "softmax"))
     model.add(Dense(num_classes, activation='softmax'))
     return model
 
@@ -928,15 +953,16 @@ def main():
     logger.info(y_predicted_prob[:10])
 
 
-def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME):
+def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME, project_name_config = COMET_PROJECT_NAME):
     global LANG_SET
     global FEATURES
     global NUM_SECONDS
     global EXPT_NAME
+    global COMET_PROJECT_NAME
 
+    COMET_PROJECT_NAME = project_name_config
     EXPT_NAME = expt_name_config
     LANG_SET = lang_set_config
-    print("HERE WE HAVE SET LANG_SET TO: " +LANG_SET +" from config: " + lang_set_config)
     FEATURES = features_config
     NUM_SECONDS = num_seconds_config
     main()
