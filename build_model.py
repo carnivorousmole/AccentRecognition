@@ -78,6 +78,7 @@ PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to tr
 # Shortening Clips Option
 SHORTEN_CLIPS = True # Shortens the clips 
 NUM_SECONDS = 5 #the number of seconds of the clip to use
+NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
 
 # what languages to use
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
@@ -227,12 +228,17 @@ def normalize_feature_vectors(feature_vectors):
     :param feature_vectors: (numpy.ndarray) Vectors of features extracted from an audio file.
     :return: (numpy.ndarray) List of normalized vectors of features
     """
-    mean = np.mean(feature_vectors.T, axis=0, dtype=np.float64)
-    std = np.std(feature_vectors, dtype=np.float64)
-    feature_vectors_normalized = []
-    for i in range(feature_vectors.shape[1]):
-        feature_vectors_normalized.append(np.subtract(feature_vectors[:, i], mean) / std)
-    feature_vectors_normalized = np.array(feature_vectors_normalized)
+    if NORMALIZE_BY_ROW:
+        mean = np.mean(feature_vectors.T, axis=0, dtype=np.float64)
+        std = np.std(feature_vectors, dtype=np.float64)
+        feature_vectors_normalized = []
+        for i in range(feature_vectors.shape[1]):
+            feature_vectors_normalized.append(np.subtract(feature_vectors[:, i], mean) / std)
+        feature_vectors_normalized = np.array(feature_vectors_normalized)
+    else:
+        mean = np.mean(feature_vectors, dtype=np.float64)
+        std = np.std(feature_vectors, dtype=np.float64)
+        feature_vectors_normalized = (feature_vectors.T - mean) / std
     return feature_vectors_normalized.T
 
 
