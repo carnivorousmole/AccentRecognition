@@ -9,4 +9,5 @@ testing_data/
 training_plots/
 __pycache__/
 accent-env/
+saved_audios_pngs/
 *.png
