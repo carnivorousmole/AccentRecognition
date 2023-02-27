@@ -77,15 +77,15 @@ SEGMENT_DATA = False # If set to False, the data will not be split into frames a
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
 SHORTEN_CLIPS = True # Shortens the clips 
-NUM_SECONDS = 5 #the number of seconds of the clip to use
-NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
+NUM_SECONDS = 10 #the number of seconds of the clip to use
+NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
 
 # what languages to use
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-LANG_SET = 'ru_po_64mel_'  
+LANG_SET = 'en_sp_ar_mn_64mel_' 
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
