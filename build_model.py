@@ -78,6 +78,7 @@ PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to tr
 # Shortening Clips Option
 SHORTEN_CLIPS = True # Shortens the clips 
 NUM_SECONDS = 10 #the number of seconds of the clip to use
+START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
 
 # what languages to use
@@ -102,7 +103,7 @@ WIN_LENGTH = int(SAMPLE_RATE * 0.001 * WIN_LENGTH_MS)  # [25 ms window length]
 # N_FFT = int(SAMPLE_RATE * 0.001 * WIN_LENGTH)  # [25 ms window length]
 FRAME_SIZE = 75  # 30 / 50 / 70 / 100 / 150 / 200 / 300 / 500 [Size of feature segment]
 
-MEL_S_LOG = False
+MEL_S_LOG = True
 HIL_S_LOG = True
 
 selection_method = 'UNIVARIATE'  # PCE / UNIVARIATE
@@ -119,7 +120,7 @@ DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
 MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
-N_MELS = 64  # [number of filters for a mel-spectrogram]
+N_MELS = 128  # [number of filters for a mel-spectrogram]
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
 saved_features_path = "./features/isolated_features/"
@@ -141,9 +142,11 @@ def filter_df(df):
         df_to_include.append(df[df.language == lang_fullname][:MAX_PER_LANG])
     return pd.concat(df_to_include)
 
-def trim_sound(y, sr, n_seconds):
+def trim_sound(y, sr, start, n_seconds):
     samples = sr * n_seconds
-    return y[:samples]
+    start_sample = int(sr * start)
+    trimmed_sound = y[start_sample:start_sample+samples]
+    return trimmed_sound
 
 def extract_features(audio_file,features_string):
     """
@@ -161,7 +164,7 @@ def extract_features(audio_file,features_string):
     s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
 
     if(SHORTEN_CLIPS):
-        y = trim_sound(y,SAMPLE_RATE,NUM_SECONDS) # shorten the length of the clip
+        y = trim_sound(y,SAMPLE_RATE,START_TIME,NUM_SECONDS) # shorten the length of the clip
 
     features = []
     if 'mfcc' in features_string:
@@ -328,12 +331,13 @@ def derive_mel_s(audio_file, y):
     # print(y.shape[0])
     # print(y.shape," ",HOP_LENGTH," ",WIN_LENGTH)
     mel_s = librosa.feature.melspectrogram(y=y, sr=SAMPLE_RATE, n_mels=N_MELS, hop_length=HOP_LENGTH,
-                                           win_length=WIN_LENGTH, power=1.0)
+                                           win_length=WIN_LENGTH)
 
     if MEL_S_LOG:
         mel_s = librosa.power_to_db(mel_s)
-    mel_s_normalized = normalize_feature_vectors(mel_s)
-    return mel_s_normalized
+
+    # mel_s_normalized = normalize_feature_vectors(mel_s)
+    return mel_s
 
 def derive_f0(audio_file, y):
     """
