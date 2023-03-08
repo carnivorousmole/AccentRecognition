@@ -2,7 +2,7 @@
 audios_manual/
 audios/
 features/
-metadata.json
+*.json
 mfccs.csv
 models/
 testing_data/
