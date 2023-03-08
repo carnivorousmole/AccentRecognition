@@ -5,6 +5,7 @@
 
 2. Navigate to Accent_Recognition directory then 
 python -m venv accent-env && source accent-env/bin/activate
+# python -m venv article-accent-env && source article-accent-env/bin/activate
 
 
 3. 
