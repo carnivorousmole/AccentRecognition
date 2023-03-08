@@ -6,7 +6,7 @@ from scipy.signal import wiener
 
 from scipy.io import wavfile
 import noisereduce as nr
-from generatepngs import saveFeaturesToPng
+from data_manipulation.generatepngs import saveFeaturesToPng
 
 def denoise_wav(input_path, output_path):
     # Load audio file

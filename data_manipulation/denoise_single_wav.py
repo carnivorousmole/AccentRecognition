@@ -1,6 +1,6 @@
 from scipy.io import wavfile
 import noisereduce as nr
-from generatepngs import saveFeaturesToPng
+from data_manipulation.generatepngs import saveFeaturesToPng
 
 inputFile = '/Users/dylanwalsh/Code/input/audio_files/audios/arabic/arabic1.wav'
 # load data
