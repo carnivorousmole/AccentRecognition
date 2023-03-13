@@ -1,12 +1,17 @@
 import json
 import os
+import csv
 
 # Load the JSON file
 with open('/Users/dylanwalsh/Code/AccentRecognition_Dylan/metadata2.json') as f:
     data = json.load(f)
 
 # Define the name of the output file
-output_file = "filtered_filenames.txt"
+output_file = "filtered_mfccs.csv"
+
+with open(output_file, "w", newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(["language","path"])
 
 # Create a dictionary to store the counts for each value of english_residence
 english_residence_counts = {}
@@ -77,8 +82,9 @@ for language, sample_list in data.items():
                 filename = os.path.splitext(os.path.basename(file_location))[0]
 
                 # Append the filename to the output file
-                with open(output_file, "a") as f:
-                    f.write(filename +".wav" +"\n")
+                with open(output_file, "a", newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([language,"./audios/"+ language +"/" +filename +".wav"])
 
 # Sort the list of counts in descending order with respect to filtered count
 counts.sort(key=lambda x: x[2], reverse=True)
