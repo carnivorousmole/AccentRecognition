@@ -86,11 +86,12 @@ NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-LANG_SET = 'en_sp_ar_mn_64mel_' 
+# LANG_SET = 'en_sp_ar_mn_64mel_' 
+LANG_SET = 'en_mn_64mel_' 
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 150  # maximum number of audios of a language
+MAX_PER_LANG = 200  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -111,6 +112,7 @@ SCORE_FUNC = f_classif  # f_classif / mutual_info_classif [score function for un
 NUM_OF_FEATURES = 10  # [number of optimal features to work with]
 SELECT_FEATURES = False  # [whether to use feature selection method]
 CHECK_DATASETS = False
+FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in filtered_filenames.txt]
 
 EPOCHS = 60  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
@@ -118,9 +120,11 @@ KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (3, 3)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
-MIN_DELTA = .01  # .01
+MIN_DELTA = .001  # .01
 PATIENCE = 10  # 10
-N_MELS = 128  # [number of filters for a mel-spectrogram]
+N_MELS = 64  # [number of filters for a mel-spectrogram]
+
+AUDIO_INPUT_PATH = "/Users/dylanwalsh/Code/input/audio_files/audios"
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
 saved_features_path = "./features/isolated_features/"
@@ -354,7 +358,6 @@ def derive_f0(audio_file, y):
     f0_normalized = normalize_scalar_feature(f0)
     return f0_normalized
 
-
 def derive_spectral_centroid(audio_file, y):
     """
     Derives spectral centroid from each frame of an audio file.
@@ -370,7 +373,6 @@ def derive_spectral_centroid(audio_file, y):
     spectral_centroid_normalized = normalize_scalar_feature(spectral_centroid)
     return spectral_centroid_normalized
 
-
 def derive_spectral_rolloff(audio_file, y):
     """
     Derives spectral centroid from each frame of an audio file.
@@ -384,7 +386,6 @@ def derive_spectral_rolloff(audio_file, y):
     rolloff = librosa.feature.spectral_rolloff(y, sr=SAMPLE_RATE, hop_length=HOP_LENGTH, win_length=WIN_LENGTH)
     rolloff_normalized = normalize_scalar_feature(rolloff)
     return rolloff_normalized
-
 
 def derive_chromagram(audio_file, y):
     """
@@ -400,7 +401,6 @@ def derive_chromagram(audio_file, y):
     chromagram_normalized = normalize_feature_vectors(chromagram)
     return chromagram_normalized
 
-
 def derive_rms(audio_file, s):
     """
     Derives root-mean-square (RMS) value from each frame of an audio file.
@@ -415,7 +415,6 @@ def derive_rms(audio_file, s):
     rms_normalized = normalize_scalar_feature(rms)
     return rms_normalized
 
-
 def derive_zcr(audio_file, y):
     """
     Derives zero-crossing rate from each frame of an audio file.
@@ -429,7 +428,6 @@ def derive_zcr(audio_file, y):
     zcr = librosa.feature.zero_crossing_rate(y, hop_length=HOP_LENGTH, frame_length=WIN_LENGTH * 2)
     zcr_normalized = normalize_scalar_feature(zcr)
     return zcr_normalized
-
 
 def split_into_matrices(feature_vectors, labels):
     """
@@ -447,7 +445,6 @@ def split_into_matrices(feature_vectors, labels):
             seg_labels.append(label)
     return segments, seg_labels
 
-
 def create_segments_after_selection(data_arrays):
     """
     Splits selected features into matrices
@@ -463,7 +460,6 @@ def create_segments_after_selection(data_arrays):
         logger.debug(f'Shape of segmented data: {np.array(segments).shape}\n')
         segments_arrays = segments_arrays + (np.array(segments),)
     return segments_arrays
-
 
 def preprocess_new_data(x, y):
     """
@@ -486,6 +482,9 @@ def preprocess_new_data(x, y):
 
     extract_features_fixed =partial(extract_features, features_string=FEATURES) # fix features argument
     x = pool.map(extract_features_fixed, x)
+    # save the first element of x as a png file
+    plt.imshow(x[0])
+    plt.savefig('test.png')
     if any(feature is None for feature in x):
         logger.error("Some audio files are missing. See the log warnings above and fix the dataset before proceeding")
         return None
@@ -536,7 +535,6 @@ def preprocess_new_data(x, y):
     return np.array(x_train), np.array(x_test), np.array(y_train), np.array(y_test), \
            train_count, test_count, classes
 
-
 def get_classes_map(y, y_raw):
     """
     :param y: binary representation of labels
@@ -549,7 +547,6 @@ def get_classes_map(y, y_raw):
             classes[np.argmax(category)] = raw
     ordered_classes = OrderedDict(sorted(classes.items()))
     return ordered_classes
-
 
 def save_input_data_to_files(x_train, x_test, y_train, y_test, train_count, test_count, classes):
     """
@@ -574,7 +571,6 @@ def save_input_data_to_files(x_train, x_test, y_train, y_test, train_count, test
         np.save(f, x_test)
         np.save(f, y_test)
 
-
 def open_preprocessed_data():
     """
     Retrieves training and testing sets
@@ -598,7 +594,6 @@ def open_preprocessed_data():
         classes = np.load(f, allow_pickle=True).item()
     return x_train, x_test, y_train, y_test, train_count, test_count, classes
 
-
 class TerminateOnBaseline(Callback):
     """
     Callback that terminates training when
@@ -619,7 +614,6 @@ class TerminateOnBaseline(Callback):
                 logger.debug(f'Epoch {epoch}: Reached baseline, terminating training...')
                 self.model.stop_training = True
 
-
 class TimeHistory(Callback):
     """
     Callback that saves duration of every training epoch into list.
@@ -633,7 +627,6 @@ class TimeHistory(Callback):
 
     def on_epoch_end(self, batch, logs={}):
         self.times.append(time.time() - self.epoch_time_start)
-
 
 def compare_sets(x_1, x_2):
     """
@@ -650,7 +643,6 @@ def compare_sets(x_1, x_2):
                 indices_to_remove.append(matrix_idx)
                 break
     return f'Number of equal matrices in sets: {equal_matrices_num}.'
-
 
 def train_model(x_train, y_train, x_validation, y_validation):
     """
@@ -727,7 +719,6 @@ def train_model(x_train, y_train, x_validation, y_validation):
 
     return model
 
-
 def build_model(input_shape, num_classes):
     """
     Builds a 2D CNN model.
@@ -760,7 +751,6 @@ def build_model(input_shape, num_classes):
     model.add(Dense(num_classes, activation='softmax'))
     return model
 
-
 def plot_history(history):
     """
     Plots how training and testing
@@ -791,7 +781,6 @@ def plot_history(history):
         experiment.log_figure(figure=plt)
     # plt.show()
 
-
 def one_hot_to_int(one_hot_arr):
     """
     Convert one-hot encoded data to Int
@@ -799,7 +788,6 @@ def one_hot_to_int(one_hot_arr):
     :return: list of numbers represented as integers
     """
     return np.array([np.argmax(one_hot) for one_hot in one_hot_arr])
-
 
 def select_features(x_train, y_train, x_test):
     """
@@ -842,7 +830,6 @@ def select_features(x_train, y_train, x_test):
 
     return x_train_selected, x_test_selected
 
-
 def main():
     """
     Script performing data preparation,
@@ -852,7 +839,6 @@ def main():
     """
     global LANG_SET
     global features_npy, info_data_npy
-
 
 
     logger.debug('Setting up file paths according to the set up...')
@@ -879,9 +865,14 @@ def main():
                  ' Otherwise preprocessing audios to get this data...')
 
     if OVERWRITE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
-        df = pd.read_csv(constants.AUDIOS_INFO_FILE_NAME)
+        if not FILTER_INPUT_DATA:
+            df = pd.read_csv(constants.AUDIOS_INFO_FILE_NAME)
+        else:
+            df = pd.read_csv(constants.FILTERED_AUDIOS_INFO_FILE_NAME)
         df = filter_df(df)
-        audio_paths = df.path if not UNSILENCE else df.path_unsilenced
+        # legacy remove
+        # audio_paths = df.path if not UNSILENCE else df.path_unsilenced
+        audio_paths = AUDIO_INPUT_PATH +"/"+ df.language + "/" + df.filename
         corresponding_languages = df.language
 
         preprocess = preprocess_new_data(audio_paths, corresponding_languages)
@@ -963,18 +954,26 @@ def main():
     logger.info(y_predicted_prob[:10])
 
 
-def run(lang_set_config = LANG_SET,features_config = FEATURES, num_seconds_config = NUM_SECONDS, expt_name_config = EXPT_NAME, project_name_config = COMET_PROJECT_NAME):
+def run(lang_set_config = LANG_SET,
+        features_config = FEATURES, 
+        num_seconds_config = NUM_SECONDS, 
+        expt_name_config = EXPT_NAME,
+        project_name_config = COMET_PROJECT_NAME,
+        filter_input_data_config = FILTER_INPUT_DATA):
     global LANG_SET
     global FEATURES
     global NUM_SECONDS
     global EXPT_NAME
     global COMET_PROJECT_NAME
+    global FILTER_INPUT_DATA
 
     COMET_PROJECT_NAME = project_name_config
     EXPT_NAME = expt_name_config
     LANG_SET = lang_set_config
     FEATURES = features_config
     NUM_SECONDS = num_seconds_config
+    FILTER_INPUT_DATA = filter_input_data_config
+
     main()
 
 def log_classification_report(y_test_bool, y_predicted, target_names):

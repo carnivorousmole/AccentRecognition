@@ -4,6 +4,7 @@ AUDIO_PATH = './audios/{}'
 BROWSE_URL = 'browse_language.php?function=find&language={}'
 METADATA_FILE_NAME = './metadata.json'
 AUDIOS_INFO_FILE_NAME = './mfccs.csv'
+FILTERED_AUDIOS_INFO_FILE_NAME = './filtered_mfccs.csv'
 SAMPLE_FILE_NAME = '{}.mp3'
 
 LANGUAGES = {
