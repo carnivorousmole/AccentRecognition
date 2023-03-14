@@ -34,7 +34,6 @@ import constants
 from torchHHT import hht, visualization
 from functools import partial
 
-# test change 
 
 # To use Comet ML visualization and logging you have to follow the instructions from README.md
 # on how to set COMET_API_KEY, COMET_WORKSPACE, COMET_PROJECT_NAME environment variables
@@ -57,19 +56,6 @@ def create_experiment():
     experiment.set_name(EXPT_NAME)
 
 """Parameters to adjust"""
-"""
-two main issues at the moment; 
-when segmentation is turned off, the shape is messed up 
-line 484, in <listcomp>
-    train_count = Counter([np.where(y == 1)[0][0] for y in y_train])
-IndexError: index 0 is out of bounds for axis 0 with size 0
-
-when the clip is shortened too much there is a different error
-...
-history = model.fit(data_generator.flow(x_train, y_train, batch_size=BATCH_SIZE),
-...
-TypeError: Cannot convert 0.9375 to EagerTensor of dtype int64
-"""
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 
@@ -79,15 +65,14 @@ PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to tr
 SHORTEN_CLIPS = True # Shortens the clips 
 NUM_SECONDS = 10 #the number of seconds of the clip to use
 START_TIME = 0.5 #the number of seconds to start the clip at
-NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
+NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
 
 # what languages to use
-# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
+LANG_SET = 'en_mn_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-# LANG_SET = 'en_sp_ar_mn_64mel_' 
-LANG_SET = 'en_mn_64mel_' 
+# LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
@@ -120,14 +105,11 @@ KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (3, 3)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
-MIN_DELTA = .001  # .01
+MIN_DELTA = .01  # .01
 PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
-AUDIO_INPUT_PATH = "/Users/dylanwalsh/Code/input/audio_files/audios"
-
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
-saved_features_path = "./features/isolated_features/"
 
 def filter_df(df):
     """
@@ -192,7 +174,7 @@ def extract_features(audio_file,features_string):
         zcr = derive_zcr(audio_file, y)
         features.append(zcr)
     if 'fbe' in features_string:
-        filepath = saved_features_path + "fbe_"+os.path.basename(audio_file.replace('.wav','.png'))
+        filepath = constants.SAVED_FEATURES_PATH + "fbe_"+os.path.basename(audio_file.replace('.wav','.png'))
         if OVERWRITE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
@@ -208,7 +190,7 @@ def extract_features(audio_file,features_string):
         features.append(mel_s)
 
     if 'hil' in features_string:
-        filepath = saved_features_path + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
+        filepath = constants.SAVED_FEATURES_PATH + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
         # print("FILENAME IS: " +filepath)
         if OVERWRITE_FILES or not os.path.isfile(filepath):
             hil_s = derive_hilbert_s(audio_file, y)
@@ -705,7 +687,6 @@ def train_model(x_train, y_train, x_validation, y_validation):
     data_generator = ImageDataGenerator(width_shift_range=0.2)
 
     logger.debug('Training model...')
-    print("IS THIS GUY THE PROBLEM: " + str(x_train.shape[0] / BATCH_SIZE))
     history = model.fit(data_generator.flow(x_train, y_train, batch_size=BATCH_SIZE),
                         steps_per_epoch=x_train.shape[0] / BATCH_SIZE, epochs=EPOCHS,
                         callbacks=[es, time_history], validation_data=(x_validation, y_validation))
@@ -872,7 +853,7 @@ def main():
         df = filter_df(df)
         # legacy remove
         # audio_paths = df.path if not UNSILENCE else df.path_unsilenced
-        audio_paths = AUDIO_INPUT_PATH +"/"+ df.language + "/" + df.filename
+        audio_paths = constants.AUDIO_INPUT_PATH +"/"+ df.language + "/" + df.filename
         corresponding_languages = df.language
 
         preprocess = preprocess_new_data(audio_paths, corresponding_languages)
