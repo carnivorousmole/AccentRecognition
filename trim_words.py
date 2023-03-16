@@ -1,39 +1,42 @@
 import os
-import wave
-import contextlib
-import speech_recognition as sr
+from google.cloud import speech_v1p1beta1 as speech
 
-# Set the directory containing the .wav files
-dir_path = "/Users/dylanwalsh/Code/input/audio_files/audios_manual_please_call_stella/english"
+# Set the path to the audio file
+audio_file = "/Users/dylanwalsh/Code/input/audio_files/audios_manual/english/english15.wav"
 
-# Loop through all .wav files in the directory
-for filename in os.listdir(dir_path):
-    if filename.endswith(".wav"):
-        filepath = os.path.join(dir_path, filename)
-        
-        # Open the .wav file and get its properties
-        with contextlib.closing(wave.open(filepath, 'r')) as f:
-            frames = f.getnframes()
-            rate = f.getframerate()
-            duration = frames / float(rate)
-            
-            # Use speech recognition to get the transcript of the first three words
-            r = sr.Recognizer()
-            with sr.AudioFile(filepath) as source:
-                audio_data = r.record(source, duration=4) # Record 4 seconds (to be safe)
-            try:
-                transcript = r.recognize_google(audio_data).split()[:3] # Get the first three words
-            except sr.UnknownValueError:
-                print(f"Speech recognition could not understand audio file {filename}")
-                continue
-            
-            # Trim the .wav file to the length of the first three words
-            new_duration = len(transcript) / float(rate)
-            with wave.open(filepath, 'r') as f:
-                new_filepath = os.path.join(dir_path, f"{filename[:-4]}_trimmed.wav")
-                with wave.open(new_filepath, 'w') as nf:
-                    nf.setnchannels(f.getnchannels())
-                    nf.setsampwidth(f.getsampwidth())
-                    nf.setframerate(f.getframerate())
-                    nf.setnframes(int(new_duration * rate))
-                    nf.writeframes(f.readframes(int(new_duration * rate)))
+
+client = speech.SpeechClient.from_service_account_file(key_path)
+
+# Initialize the Google Speech-to-Text client
+client = speech.SpeechClient.from_service_account_file(key_path)
+
+# Load the audio file
+with open(audio_file, "rb") as audio:
+    audio_data = audio.read()
+
+# Set the audio configuration
+config = speech.RecognitionConfig(
+    encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+    language_code="en-US",
+    enable_word_time_offsets=True,
+)
+
+
+operation = client.long_running_recognize(config=config, audio=speech.RecognitionAudio(content=audio_data))
+
+print("Waiting for operation to complete...")
+result = operation.result(timeout=90)
+
+for result in result.results:
+    alternative = result.alternatives[0]
+    print("Transcript: {}".format(alternative.transcript))
+    print("Confidence: {}".format(alternative.confidence))
+
+    for word_info in alternative.words:
+        word = word_info.word
+        start_time = word_info.start_time
+        end_time = word_info.end_time
+
+        print(
+            f"Word: {word}, start_time: {start_time.total_seconds()}, end_time: {end_time.total_seconds()}"
+        )
