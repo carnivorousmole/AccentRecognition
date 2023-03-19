@@ -62,7 +62,7 @@ def create_experiment():
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 
-SEGMENT_DATA = True # If set to False, the data will not be split into frames at all
+SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
 SHORTEN_CLIPS = False # Shortens the clips, set to False if the clips have already been manually shortened
@@ -79,7 +79,7 @@ LANG_SET = 'en_mn_64mel_'
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 80  # maximum number of audios of a language
+MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -113,6 +113,15 @@ PATIENCE = 10  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
+
+def pad_to_max_shape(arr_list):
+    max_shape = max([x.shape for x in arr_list])
+    padded_arr_list = []
+    for arr in arr_list:
+        pad_width = [(0, max_shape[i] - arr.shape[i]) for i in range(len(max_shape))]
+        padded_arr = np.pad(arr, pad_width=pad_width, mode='constant')
+        padded_arr_list.append(padded_arr)
+    return padded_arr_list
 
 def filter_df(df):
     """
@@ -497,6 +506,10 @@ def preprocess_new_data(x, y):
             x_train, y_train = split_into_matrices(x_train_initial, y_train_initial)
             x_test, y_test = split_into_matrices(x_test_initial, y_test_initial)
     else:
+        same_shape = all([x_element.shape == x[0].shape for x_element in x])
+        if not same_shape:
+            x = pad_to_max_shape(x)
+
         x_train, x_test, y_train, y_test = train_test_split(x, y_categorical, test_size=0.25, random_state=1234)
         # print("type of train x and y: ", type(x_train)," ", type(y_train))
         # print("type of test x and y: ", type(x_test)," ", type(y_test))
