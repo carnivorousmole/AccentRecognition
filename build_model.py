@@ -34,6 +34,8 @@ import constants
 from torchHHT import hht, visualization
 from functools import partial
 
+from create_file_data_csv import create_file_data_csv
+
 
 # To use Comet ML visualization and logging you have to follow the instructions from README.md
 # on how to set COMET_API_KEY, COMET_WORKSPACE, COMET_PROJECT_NAME environment variables
@@ -60,14 +62,13 @@ def create_experiment():
 # Overwrite Files Option
 OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 
-SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
+SEGMENT_DATA = True # If set to False, the data will not be split into frames at all
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
-SHORTEN_CLIPS = True # Shortens the clips 
+SHORTEN_CLIPS = False # Shortens the clips, set to False if the clips have already been manually shortened
 NUM_SECONDS = 10 #the number of seconds of the clip to use
 START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
-WORD_RECOGNITION_MODE = True # If set to true, the classification will be done for words instead of accents
 
 # what languages to use
 LANG_SET = 'en_mn_64mel_' 
@@ -78,7 +79,7 @@ LANG_SET = 'en_mn_64mel_'
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 200  # maximum number of audios of a language
+MAX_PER_LANG = 80  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -853,7 +854,6 @@ def main():
     global LANG_SET
     global features_npy, info_data_npy
 
-
     logger.debug('Setting up file paths according to the set up...')
 
     if UNSILENCE:
@@ -878,14 +878,14 @@ def main():
                  ' Otherwise preprocessing audios to get this data...')
 
     if OVERWRITE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
-        if not FILTER_INPUT_DATA:
-            df = pd.read_csv(constants.AUDIOS_INFO_FILE_NAME)
-        else:
-            df = pd.read_csv(constants.FILTERED_AUDIOS_INFO_FILE_NAME)
-        df = filter_df(df)
-        # legacy remove
-        # audio_paths = df.path if not UNSILENCE else df.path_unsilenced
-        audio_paths = constants.AUDIO_INPUT_PATH +"/"+ df.language + "/" + df.filename
+        
+        dir = constants.AUDIO_INPUT_PATH
+        csv_path = create_file_data_csv(dir)
+        df = pd.read_csv(csv_path)
+
+        df = filter_df(df)  
+        
+        audio_paths = df.filepath
         corresponding_languages = df.language
 
         preprocess = preprocess_new_data(audio_paths, corresponding_languages)
