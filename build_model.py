@@ -44,6 +44,7 @@ COMET_PROJECT_NAME= str(datetime.datetime.now().day)+"-"+datetime.datetime.now()
 
 USE_COMET_ML = True
 
+# Creating an experiment in the cloud
 def create_experiment():
     if USE_COMET_ML:
         global experiment 
@@ -66,6 +67,7 @@ SHORTEN_CLIPS = True # Shortens the clips
 NUM_SECONDS = 10 #the number of seconds of the clip to use
 START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
+WORD_RECOGNITION_MODE = True # If set to true, the classification will be done for words instead of accents
 
 # what languages to use
 LANG_SET = 'en_mn_64mel_' 
@@ -811,6 +813,36 @@ def select_features(x_train, y_train, x_test):
 
     return x_train_selected, x_test_selected
 
+def run(lang_set_config = LANG_SET,
+        features_config = FEATURES, 
+        num_seconds_config = NUM_SECONDS, 
+        expt_name_config = EXPT_NAME,
+        project_name_config = COMET_PROJECT_NAME,
+        filter_input_data_config = FILTER_INPUT_DATA):
+    global LANG_SET
+    global FEATURES
+    global NUM_SECONDS
+    global EXPT_NAME
+    global COMET_PROJECT_NAME
+    global FILTER_INPUT_DATA
+
+    COMET_PROJECT_NAME = project_name_config
+    EXPT_NAME = expt_name_config
+    LANG_SET = lang_set_config
+    FEATURES = features_config
+    NUM_SECONDS = num_seconds_config
+    FILTER_INPUT_DATA = filter_input_data_config
+
+    main()
+
+def log_classification_report(y_test_bool, y_predicted, target_names):
+    report = classification_report(y_test_bool, y_predicted, target_names=target_names, output_dict=True)
+    for key, value in report.items():
+      if key == "accuracy":
+        experiment.log_metric(key, value)
+      else:
+        experiment.log_metrics(value, prefix=f'{key}')
+
 def main():
     """
     Script performing data preparation,
@@ -933,37 +965,6 @@ def main():
     logger.info(y_predicted[:10])
     logger.info('PROB: ')
     logger.info(y_predicted_prob[:10])
-
-
-def run(lang_set_config = LANG_SET,
-        features_config = FEATURES, 
-        num_seconds_config = NUM_SECONDS, 
-        expt_name_config = EXPT_NAME,
-        project_name_config = COMET_PROJECT_NAME,
-        filter_input_data_config = FILTER_INPUT_DATA):
-    global LANG_SET
-    global FEATURES
-    global NUM_SECONDS
-    global EXPT_NAME
-    global COMET_PROJECT_NAME
-    global FILTER_INPUT_DATA
-
-    COMET_PROJECT_NAME = project_name_config
-    EXPT_NAME = expt_name_config
-    LANG_SET = lang_set_config
-    FEATURES = features_config
-    NUM_SECONDS = num_seconds_config
-    FILTER_INPUT_DATA = filter_input_data_config
-
-    main()
-
-def log_classification_report(y_test_bool, y_predicted, target_names):
-    report = classification_report(y_test_bool, y_predicted, target_names=target_names, output_dict=True)
-    for key, value in report.items():
-      if key == "accuracy":
-        experiment.log_metric(key, value)
-      else:
-        experiment.log_metrics(value, prefix=f'{key}')
 
 
 if __name__ == '__main__':
