@@ -60,7 +60,8 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_FEATURE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_MODEL_FILES = True
 
 SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
@@ -78,7 +79,7 @@ LANG_SET = 'en_mn_64mel_'
 # LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+FEATURES = 'mfcc'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
@@ -102,17 +103,19 @@ SELECT_FEATURES = False  # [whether to use feature selection method]
 CHECK_DATASETS = False
 FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in filtered_filenames.txt]
 
-EPOCHS = 60  # [Number of training epochs]
+EPOCHS = 200  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
 KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (3, 3)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
-MIN_DELTA = .01  # .01
-PATIENCE = 10  # 10
+MIN_DELTA = .005  # .01
+PATIENCE = 50  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
+
+AUDIO_INPUT_PATH = constants.AUDIO_INPUT_PATH
 
 def pad_to_max_shape(arr_list):
     max_shape = max([x.shape for x in arr_list])
@@ -187,7 +190,7 @@ def extract_features(audio_file,features_string):
         features.append(zcr)
     if 'fbe' in features_string:
         filepath = constants.SAVED_FEATURES_PATH + "fbe_"+os.path.basename(audio_file.replace('.wav','.png'))
-        if OVERWRITE_FILES or not os.path.isfile(filepath):
+        if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
             # np.save(filepath, mel_s)
@@ -204,7 +207,7 @@ def extract_features(audio_file,features_string):
     if 'hil' in features_string:
         filepath = constants.SAVED_FEATURES_PATH + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
         # print("FILENAME IS: " +filepath)
-        if OVERWRITE_FILES or not os.path.isfile(filepath):
+        if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
             hil_s = derive_hilbert_s(audio_file, y)
             # save the array to file
             np.save(filepath, hil_s)
@@ -736,6 +739,7 @@ def build_model(input_shape, num_classes):
     model.add(Conv2D(64, kernel_size=KERNEL_SIZE, activation='relu'))
     model.add(BatchNormalization())
     # model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+    model.summary() # this shows why mfcc aint working
     model.add(MaxPooling2D(pool_size=POOL_SIZE))
     model.add(Dropout(DROPOUT))
     # model.add(Flatten())
@@ -832,13 +836,16 @@ def run(lang_set_config = LANG_SET,
         num_seconds_config = NUM_SECONDS, 
         expt_name_config = EXPT_NAME,
         project_name_config = COMET_PROJECT_NAME,
-        filter_input_data_config = FILTER_INPUT_DATA):
+        filter_input_data_config = FILTER_INPUT_DATA,
+        audio_input_path_config = AUDIO_INPUT_PATH
+        ):
     global LANG_SET
     global FEATURES
     global NUM_SECONDS
     global EXPT_NAME
     global COMET_PROJECT_NAME
     global FILTER_INPUT_DATA
+    global AUDIO_INPUT_PATH
 
     COMET_PROJECT_NAME = project_name_config
     EXPT_NAME = expt_name_config
@@ -846,6 +853,7 @@ def run(lang_set_config = LANG_SET,
     FEATURES = features_config
     NUM_SECONDS = num_seconds_config
     FILTER_INPUT_DATA = filter_input_data_config
+    AUDIO_INPUT_PATH = audio_input_path_config
 
     main()
 
@@ -887,12 +895,10 @@ def main():
     info_data_npy = f'./testing_data/{FEATURES}/{training_languages_str}.npy'
     model_file = f'./models/{FEATURES}/{training_languages_str}.h5'
 
-    logger.debug('Getting input data from file in case it has already been retrieved.'
-                 ' Otherwise preprocessing audios to get this data...')
 
-    if OVERWRITE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
-        
-        dir = constants.AUDIO_INPUT_PATH
+    if OVERWRITE_FEATURE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
+        logger.debug('Preprocessing audios...')
+        dir = AUDIO_INPUT_PATH
         csv_path = create_file_data_csv(dir)
         df = pd.read_csv(csv_path)
 
@@ -906,6 +912,7 @@ def main():
             return -1
         x_train, x_test, y_train, y_test, train_count, test_count, languages_mapping = preprocess
     else:
+        logger.debug('Getting input data from file')
         x_train, x_test, y_train, y_test, train_count, test_count, languages_mapping = open_preprocessed_data()
 
     logger.debug('Selecting features...')
@@ -914,7 +921,7 @@ def main():
         x_train, x_test = select_features(x_train, y_train, x_test)
         x_train, x_test = create_segments_after_selection((x_train, x_test))
 
-    if OVERWRITE_FILES or not Path.exists(Path(model_file)):
+    if OVERWRITE_MODEL_FILES or not Path.exists(Path(model_file)):
         logger.debug('Training model...')
         trained_model = train_model(np.array(x_train), np.array(y_train), np.array(x_test), np.array(y_test))
         trained_model.summary()
