@@ -7,7 +7,7 @@ directory_path = "/Users/dylanwalsh/Code/input/audio_files/audios_manual"
 key_path = "/Users/dylanwalsh/keys/formal-theater-380811-968fef63f10f.json"
 
 # Set the path to the output directory
-output_directory_path = "/Users/dylanwalsh/Code/input/audio_files/audios_word_split_2"
+output_directory_path = "/Users/dylanwalsh/Code/input/audio_files/audios_word_split"
 
 def directory_contains_file_containing_string(directory_path, string_to_search):
     for dirpath, dirnames, filenames in os.walk(directory_path):
