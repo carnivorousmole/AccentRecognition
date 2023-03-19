@@ -36,14 +36,14 @@ for root, dirs, files in os.walk(directory_path):
     rel_path = os.path.relpath(root, directory_path)
 
     # Create the corresponding output directory
-    output_root = os.path.join(output_directory_path, rel_path)
-    os.makedirs(output_root, exist_ok=True)
+    # print the output and relative paths
+
 
     for file in files:
         # Check if the file is an audio file
         if file.endswith(".wav"):
             base, extension = os.path.splitext(file)
-            if directory_contains_file_containing_string(output_root, base+"_"):
+            if directory_contains_file_containing_string(output_directory_path, base + ".wav"):
                 print(f"Already Processed: {file}...")
             else:
                 # Set the path to the audio file
@@ -75,8 +75,8 @@ for root, dirs, files in os.walk(directory_path):
                         words_so_far += word.word + "_"
 
                          # Create the corresponding output directory
-                        output_root_for_this_word = output_root + "/" + word.word
-                        output_root_for_words_so_far = output_root + "/" + words_so_far
+                        output_root_for_this_word = output_directory_path + "/" + word.word + "/" + rel_path
+                        output_root_for_words_so_far = output_directory_path + "/" + words_so_far + "/" + rel_path
                         os.makedirs(output_root_for_this_word, exist_ok=True)
                         os.makedirs(output_root_for_words_so_far, exist_ok=True)
 
@@ -86,10 +86,10 @@ for root, dirs, files in os.walk(directory_path):
                         original_file_name = os.path.splitext(file)[0]
 
                         # Set the path to the new .wav file for this individual word
-                        word_file_name = f"{original_file_name}_{word.word}.wav"
+                        word_file_name = f"{original_file_name}.wav"
                         word_file_path = os.path.join(output_root_for_this_word, word_file_name)
                         # set the path for the words so far
-                        words_file_name = f"{original_file_name}_{words_so_far}.wav"
+                        words_file_name = f"{original_file_name}.wav"
                         words_file_path = os.path.join(output_root_for_words_so_far, words_file_name)
 
                         # Use FFmpeg to extract the word segment from the audio file and save it as a new .wav file
