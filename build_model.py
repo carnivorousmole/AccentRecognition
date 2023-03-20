@@ -60,7 +60,7 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FEATURE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_FEATURE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
 OVERWRITE_MODEL_FILES = True
 
 SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
@@ -72,15 +72,15 @@ START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
 
 # what languages to use
-LANG_SET = 'en_mn_64mel_' 
+LANG_SET = 'ko_en_ar_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'mfcc'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 150  # maximum number of audios of a language
+FEATURES = 'fbe_hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+MAX_PER_LANG = 200  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -106,7 +106,7 @@ FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in
 EPOCHS = 200  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
 KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
-POOL_SIZE = (3, 3)  # (2, 2) (3, 3)
+POOL_SIZE = (2, 2)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
 MIN_DELTA = .005  # .01
