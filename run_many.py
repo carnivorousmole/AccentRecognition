@@ -19,7 +19,7 @@ LANGUAGES = {
 }
 
 FEATURES = [ 'f0' , 'cen'] 
-FEATURES_ALL = [ 'fbe','hil' ] 
+FEATURES_ALL = [ 'mfcc','fbe','hil' ] 
 
 def today():
     return datetime.datetime.now().strftime("%d_%b")
@@ -48,7 +48,7 @@ def individual_features_test():
     for l in ["ar_en_64mel_","ko_ar_en_64mel_"]:
         for f in FEATURES_ALL:
             try:
-                run(lang_set_config=l, features_config = f, expt_name_config=l+"_"+f, project_name_config=today()+"_if", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
+                run(lang_set_config=l, features_config = f, expt_name_config=l+"_"+f, project_name_config=today()+"_if2", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
             except Exception as e:
                 print(e)
 
