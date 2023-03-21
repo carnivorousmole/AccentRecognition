@@ -72,15 +72,15 @@ START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
 
 # what languages to use
-LANG_SET = 'ko_en_ar_64mel_' 
+LANG_SET = 'en_ar_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'fbe_hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 200  # maximum number of audios of a language
+FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+MAX_PER_LANG = 50  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -855,7 +855,8 @@ def run(lang_set_config = LANG_SET,
     FILTER_INPUT_DATA = filter_input_data_config
     AUDIO_INPUT_PATH = audio_input_path_config
 
-    main()
+    performance_metrics = main()
+    return performance_metrics
 
 def log_classification_report(y_test_bool, y_predicted, target_names):
     report = classification_report(y_test_bool, y_predicted, target_names=target_names, output_dict=True)
@@ -986,6 +987,15 @@ def main():
     logger.info('PROB: ')
     logger.info(y_predicted_prob[:10])
 
+    performance_metrics = {
+        'accuracy': confusion_matrix_acc
+        # 'precision': 
+        # 'recall': recall_score(y_test, y_pred),
+        # 'f1_score': f1_score(y_test, y_pred)
+    }
+    return performance_metrics
+
 
 if __name__ == '__main__':
     main()
+
