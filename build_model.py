@@ -60,7 +60,7 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FEATURE_FILES = True # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_FEATURE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
 OVERWRITE_MODEL_FILES = True
 
 SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
@@ -69,18 +69,19 @@ PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to tr
 SHORTEN_CLIPS = False # Shortens the clips, set to False if the clips have already been manually shortened
 NUM_SECONDS = 10 #the number of seconds of the clip to use
 START_TIME = 0.5 #the number of seconds to start the clip at
-NORMALIZE_BY_ROW = True # If set to true, the data will be normalized by row
+NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
+NUM_CNN_LAYERS = 4 # The number of CNN layers to use
 
 # what languages to use
-LANG_SET = 'en_ar_64mel_' 
+LANG_SET = 'en_ar_mn_64mel_' 
 # LANG_SET = 'en_fr_sp_ru_64mel_'
 # LANG_SET = 'en_sp_ar_mn_64mel_' 
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
 # FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-MAX_PER_LANG = 50  # maximum number of audios of a language
+FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
 
@@ -110,7 +111,7 @@ POOL_SIZE = (2, 2)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
 MIN_DELTA = .005  # .01
-PATIENCE = 50  # 10
+PATIENCE = 200  # 10
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
@@ -193,7 +194,7 @@ def extract_features(audio_file,features_string):
         if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
-            # np.save(filepath, mel_s)
+            np.save(filepath, mel_s)
             mel_s_as_int8 = mel_s.astype(np.uint8)
             cv2.imwrite(filepath, mel_s_as_int8)
 
@@ -299,25 +300,44 @@ def derive_hilbert_s(audio_file, y):
     """
     Derives Hilbert Spectrum
     """
-    num_samples = y.shape[0]
-    N = int(num_samples/HOP_LENGTH)+1
+    num_samples = y.shape[0] # number of samples in the audio file
+    N = int(num_samples/HOP_LENGTH)+1 # defining the number of frames (used to downsample the result)
     logger.debug(f'Extracting Hilbert-spectrum for {audio_file}...')
     imfs, imfs_env, imfs_freq = hht.hilbert_huang(y, SAMPLE_RATE, num_imf=5)
-    lowest_imf = 2
-    highest_imf = 5
-    spectrum, t, f = hht.hilbert_spectrum(imfs_env, imfs_freq, SAMPLE_RATE, freq_res = 100)
-    # spectrum, t, f = hht.hilbert_spectrum(imfs_env[lowest_imf:highest_imf+1,:], imfs_freq[lowest_imf:highest_imf+1,:], SAMPLE_RATE, freq_lim = (0, 5000), freq_res = 100)
-    # visualization.plot_HilbertSpectrum(spectrum, t, f, 
-    #                                     save_spectrum="Hilbert_spectrum.png", 
-    #                                     save_marginal="Hilbert_marginal.png")
-    hil_s = spectrum.numpy().transpose()
-    # hil_s = downsample(np.rot90( spectrum.numpy(), k=0, axes=(0, 1)),N) # downsample to feature vector size
+    # visualization.plot_IMFs(y, imfs, SAMPLE_RATE, save_fig="test_images/emd.png")
+    # lowest_imf = 2
+    # highest_imf = 5
+    hil_s, t, f = hht.hilbert_spectrum(imfs_env, imfs_freq, SAMPLE_RATE, freq_res = 100)
+
+    # visualization.plot_HilbertSpectrum(hil_s, t, f, energy_scale='log',
+    #                                 save_spectrum="test_images/Hilbert_spectrum.png", 
+    #                                 save_marginal="test_images/Hilbert_marginal.png")
+    hil_s = hil_s.numpy().transpose()
     hil_s = downsample(hil_s,N) # downsample to feature vector size
 
+    hil_s = mel_spectrum_transform(hil_s, SAMPLE_RATE ,n_mels=N_MELS, fmin=0, fmax=None)
+
+    # plt.figure(figsize=(10, 5))
+    # librosa.display.specshow(hil_s, sr=SAMPLE_RATE, hop_length=HOP_LENGTH, x_axis='time', y_axis='mel', fmin=0, fmax=SAMPLE_RATE/2)
+    # plt.colorbar(format='%+2.0f dB')
+    # plt.title('Log-magnitude Mel-frequency Spectrogram')
+    # plt.tight_layout()
+    # plt.show()
     if HIL_S_LOG:
         hil_s = librosa.power_to_db(hil_s)
     hil_s_normalized = normalize_feature_vectors(hil_s)
     return hil_s_normalized
+
+
+def mel_spectrum_transform(spectrum, sample_rate, n_mels=128, fmin=0, fmax=None):
+    fmax =  sample_rate / 2
+    spectrum = spectrum.T
+    n_fft = 2*(spectrum.shape[1] - 1)
+    mel_basis = librosa.filters.mel(sample_rate, n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax)
+
+    mel_spectrum = np.dot(mel_basis, spectrum.T)
+
+    return mel_spectrum
 
 def derive_mel_s(audio_file, y):
     """
@@ -337,8 +357,8 @@ def derive_mel_s(audio_file, y):
     if MEL_S_LOG:
         mel_s = librosa.power_to_db(mel_s)
 
-    # mel_s_normalized = normalize_feature_vectors(mel_s)
-    return mel_s
+    mel_s_normalized = normalize_feature_vectors(mel_s)
+    return mel_s_normalized
 
 def derive_f0(audio_file, y):
     """
@@ -480,8 +500,11 @@ def preprocess_new_data(x, y):
     extract_features_fixed =partial(extract_features, features_string=FEATURES) # fix features argument
     x = pool.map(extract_features_fixed, x)
     # save the first element of x as a png file
+    plt.clf()
     plt.imshow(x[0])
-    plt.savefig('test.png')
+    # save the figure with the name of the features extracted
+    plt.savefig("test_images/features_test_images/"+FEATURES + ".png")
+
     if any(feature is None for feature in x):
         logger.error("Some audio files are missing. See the log warnings above and fix the dataset before proceeding")
         return None
@@ -739,8 +762,19 @@ def build_model(input_shape, num_classes):
     model.add(Conv2D(64, kernel_size=KERNEL_SIZE, activation='relu'))
     model.add(BatchNormalization())
     # model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
-    model.summary() # this shows why mfcc aint working
     model.add(MaxPooling2D(pool_size=POOL_SIZE))
+
+
+    if NUM_CNN_LAYERS == 4:
+        model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=POOL_SIZE))
+        model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=POOL_SIZE))
+    elif NUM_CNN_LAYERS != 2:
+        raise ValueError('NUM_CNN_LAYERS must be 2 or 4')
+    
     model.add(Dropout(DROPOUT))
     # model.add(Flatten())
     model.add(Flatten())
@@ -862,7 +896,7 @@ def log_classification_report(y_test_bool, y_predicted, target_names):
     report = classification_report(y_test_bool, y_predicted, target_names=target_names, output_dict=True)
     for key, value in report.items():
       if key == "accuracy":
-        experiment.log_metric(key, value)
+        experiment.log_metric( "final_"+key, value)
       else:
         experiment.log_metrics(value, prefix=f'{key}')
 

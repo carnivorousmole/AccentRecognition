@@ -46,10 +46,12 @@ def english_test():
 
 def individual_features_test():
     results = {}
-    for l in ["ar_en_64mel_", "ko_ar_en_64mel_"]:
+    # for l in ["ar_mn_sp_en_64mel_", "ar_en_64mel_","mn_en_64mel_","sp_en_64mel_"]:
+    for l in ["ar_mn_en_64mel"]:
+
         for f in FEATURES_ALL:
             try:
-                metrics = run(lang_set_config=l, features_config=f, expt_name_config=l+"_"+f, project_name_config=today()+"_if2", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
+                metrics = run(lang_set_config=l, features_config=f, expt_name_config=l+"_"+f, project_name_config=today()+"_if_4", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
                 acc = metrics["accuracy"]
                 results[(l, f)] = acc
             except Exception as e:
