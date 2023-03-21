@@ -1,7 +1,7 @@
 from build_model import run
 from itertools import combinations
 import datetime
-
+import matplotlib.pyplot as plt
 
 
 LANGUAGES = {
@@ -45,12 +45,27 @@ def english_test():
             print(e)
 
 def individual_features_test():
-    for l in ["ar_en_64mel_","ko_ar_en_64mel_"]:
+    results = {}
+    for l in ["ar_en_64mel_", "ko_ar_en_64mel_"]:
         for f in FEATURES_ALL:
             try:
-                run(lang_set_config=l, features_config = f, expt_name_config=l+"_"+f, project_name_config=today()+"_if2", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
+                metrics = run(lang_set_config=l, features_config=f, expt_name_config=l+"_"+f, project_name_config=today()+"_if2", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
+                acc = metrics["accuracy"]
+                results[(l, f)] = acc
             except Exception as e:
                 print(e)
+    
+    fig, ax = plt.subplots()
+    for i, (lang_set, feature) in enumerate(results.keys()):
+        ax.bar(i, results[(lang_set, feature)], label=f"{lang_set} - {feature}")
+    ax.set_xticks(range(len(results)))
+    ax.set_xticklabels([f"{lang_set}\n{feature}" for (lang_set, feature) in results.keys()], rotation=45, ha="right")
+    ax.set_xlabel("Language Set and Feature")
+    ax.set_ylabel("Accuracy")
+    ax.legend()
+    #save plt
+    plt.savefig("individual_features_test.png")
+
 
 def mutliclass_features_test():
     for f in FEATURES:
