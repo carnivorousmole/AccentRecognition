@@ -19,7 +19,7 @@ LANGUAGES = {
 }
 
 FEATURES = [ 'f0' , 'cen'] 
-FEATURES_ALL = [ 'mfcc','fbe','hil' ] 
+FEATURES_ALL = ['mfcc','fbe','hil' ] 
 
 def today():
     return datetime.datetime.now().strftime("%d_%b")
@@ -43,6 +43,22 @@ def english_test():
             run(lang_set_config=lang + "_en_64mel_", expt_name_config=lang+"_en", project_name_config=today()+"_duolingo", audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
         except Exception as e:
             print(e)
+
+
+def features_and_layers_test():
+    results = {}
+    for f in FEATURES_ALL:
+        for l in ["ar_en_64mel", "mn_en_64mel", "ar_mn_en_64mel"]:
+            for num_layers in [2,4]:
+                try:
+                    metrics = run(lang_set_config=l, features_config=f, expt_name_config=l+"_"+f +"_"+str(num_layers)+"_layers", 
+                                project_name_config=today()+"_lang_features_layers", 
+                                audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_",
+                                cnn_layers_config=num_layers)
+                    acc = metrics["accuracy"]
+                    results[(l, f)] = acc
+                except Exception as e:
+                    print(e)
 
 def individual_features_test():
     results = {}
@@ -95,10 +111,12 @@ def word_segment_tests():
 if __name__ == '__main__':
     # english_test()
     # mutliclass_features_test()
-    individual_features_test()
+    # individual_features_test()
     # clip_length_test()
     # word_segment_tests()
     # english_test()
+    features_and_layers_test()
+
 
 # iterate over the set of strings
 # for string in strings:
