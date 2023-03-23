@@ -142,9 +142,6 @@ def filter_df(df):
         lang_fullname = constants.LANGUAGES[lang_code]
         # TODO: Filter recordings randomly (based on random seed), not first ones
         df_to_include.append(df[df.language == lang_fullname][:MAX_PER_LANG])
-        # print
-        # filtered down to {MAX_PER_LANG} samples per language
-        print("filtered down to", MAX_PER_LANG, "samples per language for language", LANG_SET)
     return pd.concat(df_to_include)
 
 def trim_sound(y, sr, start, n_seconds):
@@ -771,11 +768,21 @@ def build_model(input_shape, num_classes):
     if NUM_CNN_LAYERS == 4:
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        if MAX_POOL_4:
+        # if input shape height is less than 20
+        # then only apply max pooling in x direction
+        if input_shape[0] < 20:
+            # apply horizontal pooling only
+            print('Applying horizontal pooling only')
+            model.add(MaxPooling2D(pool_size=(1, POOL_SIZE[1])))
+        else:
             model.add(MaxPooling2D(pool_size=POOL_SIZE))
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        if MAX_POOL_4:
+        if input_shape[0] < 20:
+            # apply horizontal pooling only
+            print('Applying horizontal pooling only')
+            model.add(MaxPooling2D(pool_size=(1, POOL_SIZE[1])))
+        else:
             model.add(MaxPooling2D(pool_size=POOL_SIZE))
     elif NUM_CNN_LAYERS != 2:
         raise ValueError('NUM_CNN_LAYERS must be 2 or 4')
@@ -925,7 +932,7 @@ def main():
 
     if UNSILENCE:
         LANG_SET = LANG_SET + '_unsilenced'
-    training_languages_str = f'{LANG_SET}_{FRAME_SIZE}'
+    training_languages_str = f'{MAX_PER_LANG}_{LANG_SET}_{FRAME_SIZE}'
 
     create_experiment()
 
@@ -937,8 +944,8 @@ def main():
 
     logger.debug('Defining saving file names...')
 
-    features_npy = f'./features/{FEATURES}/{MAX_PER_LANG}_{training_languages_str}.npy'
-    info_data_npy = f'./testing_data/{FEATURES}/{MAX_PER_LANG}_{training_languages_str}.npy'
+    features_npy = f'./features/{FEATURES}/{training_languages_str}.npy'
+    info_data_npy = f'./testing_data/{FEATURES}/{training_languages_str}.npy'
     model_file = f'./models/{FEATURES}/{training_languages_str}.h5'
 
 
