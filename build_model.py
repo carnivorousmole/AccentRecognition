@@ -71,6 +71,7 @@ NUM_SECONDS = 10 #the number of seconds of the clip to use
 START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
 NUM_CNN_LAYERS = 4 # The number of CNN layers to use
+MAX_POOL_4 = False # If set to true, the model will use a max pooling layer after the 3rd and 4th layers
 
 # what languages to use
 LANG_SET = 'en_ar_mn_64mel_' 
@@ -79,7 +80,7 @@ LANG_SET = 'en_ar_mn_64mel_'
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
-FEATURES = 'mfcc'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
@@ -103,14 +104,14 @@ SELECT_FEATURES = False  # [whether to use feature selection method]
 CHECK_DATASETS = False
 FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in filtered_filenames.txt]
 
-EPOCHS = 200  # [Number of training epochs]
+EPOCHS = 300  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
 KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (2, 2)  # (2, 2) (3, 3)
 DROPOUT = 0.1  # 0.5 for mfcc CNN
 BASELINE = 1.0
 MIN_DELTA = .005  # .01
-PATIENCE = 200  # 10
+PATIENCE = EPOCHS  # 10 - set to epochs to temporarily disable early stopping as it was resulting in lower final accuracy
 N_MELS = 64  # [number of filters for a mel-spectrogram]
 
 EXPT_NAME = LANG_SET+FEATURES+"_"+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute) +"_"+str(datetime.datetime.now().day)+str(datetime.datetime.now().month)
@@ -141,6 +142,9 @@ def filter_df(df):
         lang_fullname = constants.LANGUAGES[lang_code]
         # TODO: Filter recordings randomly (based on random seed), not first ones
         df_to_include.append(df[df.language == lang_fullname][:MAX_PER_LANG])
+        # print
+        # filtered down to {MAX_PER_LANG} samples per language
+        print("filtered down to", MAX_PER_LANG, "samples per language for language", LANG_SET)
     return pd.concat(df_to_include)
 
 def trim_sound(y, sr, start, n_seconds):
@@ -767,10 +771,12 @@ def build_model(input_shape, num_classes):
     if NUM_CNN_LAYERS == 4:
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        # model.add(MaxPooling2D(pool_size=POOL_SIZE))
+        if MAX_POOL_4:
+            model.add(MaxPooling2D(pool_size=POOL_SIZE))
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        # model.add(MaxPooling2D(pool_size=(1,2)))
+        if MAX_POOL_4:
+            model.add(MaxPooling2D(pool_size=POOL_SIZE))
     elif NUM_CNN_LAYERS != 2:
         raise ValueError('NUM_CNN_LAYERS must be 2 or 4')
     
@@ -871,7 +877,8 @@ def run(lang_set_config = LANG_SET,
         project_name_config = COMET_PROJECT_NAME,
         filter_input_data_config = FILTER_INPUT_DATA,
         audio_input_path_config = AUDIO_INPUT_PATH,
-        cnn_layers_config = NUM_CNN_LAYERS
+        cnn_layers_config = NUM_CNN_LAYERS,
+        max_pool_4_config = MAX_POOL_4
         ):
     global LANG_SET
     global FEATURES
@@ -881,6 +888,7 @@ def run(lang_set_config = LANG_SET,
     global FILTER_INPUT_DATA
     global AUDIO_INPUT_PATH
     global NUM_CNN_LAYERS
+    global MAX_POOL_4
 
     COMET_PROJECT_NAME = project_name_config
     EXPT_NAME = expt_name_config
@@ -890,6 +898,7 @@ def run(lang_set_config = LANG_SET,
     FILTER_INPUT_DATA = filter_input_data_config
     AUDIO_INPUT_PATH = audio_input_path_config
     NUM_CNN_LAYERS = cnn_layers_config
+    MAX_POOL_4 = max_pool_4_config
 
     performance_metrics = main()
     return performance_metrics
