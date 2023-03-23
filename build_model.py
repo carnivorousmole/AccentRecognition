@@ -79,8 +79,7 @@ LANG_SET = 'en_ar_mn_64mel_'
 # LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
 # LANG_SET = 'ru_po_64mel_'  
 
-# FEATURES = 'fbe'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
-FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+FEATURES = 'mfcc'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
@@ -190,13 +189,13 @@ def extract_features(audio_file,features_string):
         zcr = derive_zcr(audio_file, y)
         features.append(zcr)
     if 'fbe' in features_string:
-        filepath = constants.SAVED_FEATURES_PATH + "fbe_"+os.path.basename(audio_file.replace('.wav','.png'))
+        filepath = constants.SAVED_FEATURES_PATH + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
         if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
             mel_s = derive_mel_s(audio_file, y)
             # save the array to file
             np.save(filepath, mel_s)
-            mel_s_as_int8 = mel_s.astype(np.uint8)
-            cv2.imwrite(filepath, mel_s_as_int8)
+            # mel_s_as_int8 = mel_s.astype(np.uint8)
+            # cv2.imwrite(filepath, mel_s_as_int8)
 
         else:
             # load the array from file
@@ -768,10 +767,10 @@ def build_model(input_shape, num_classes):
     if NUM_CNN_LAYERS == 4:
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=POOL_SIZE))
+        # model.add(MaxPooling2D(pool_size=POOL_SIZE))
         model.add(Conv2D(filters = 96, kernel_size = (3,3),padding = 'Same',activation ='relu'))
         model.add(BatchNormalization())
-        model.add(MaxPooling2D(pool_size=POOL_SIZE))
+        # model.add(MaxPooling2D(pool_size=(1,2)))
     elif NUM_CNN_LAYERS != 2:
         raise ValueError('NUM_CNN_LAYERS must be 2 or 4')
     
@@ -871,7 +870,8 @@ def run(lang_set_config = LANG_SET,
         expt_name_config = EXPT_NAME,
         project_name_config = COMET_PROJECT_NAME,
         filter_input_data_config = FILTER_INPUT_DATA,
-        audio_input_path_config = AUDIO_INPUT_PATH
+        audio_input_path_config = AUDIO_INPUT_PATH,
+        cnn_layers_config = NUM_CNN_LAYERS
         ):
     global LANG_SET
     global FEATURES
@@ -880,6 +880,7 @@ def run(lang_set_config = LANG_SET,
     global COMET_PROJECT_NAME
     global FILTER_INPUT_DATA
     global AUDIO_INPUT_PATH
+    global NUM_CNN_LAYERS
 
     COMET_PROJECT_NAME = project_name_config
     EXPT_NAME = expt_name_config
@@ -888,6 +889,7 @@ def run(lang_set_config = LANG_SET,
     NUM_SECONDS = num_seconds_config
     FILTER_INPUT_DATA = filter_input_data_config
     AUDIO_INPUT_PATH = audio_input_path_config
+    NUM_CNN_LAYERS = cnn_layers_config
 
     performance_metrics = main()
     return performance_metrics
@@ -926,8 +928,8 @@ def main():
 
     logger.debug('Defining saving file names...')
 
-    features_npy = f'./features/{FEATURES}/{training_languages_str}.npy'
-    info_data_npy = f'./testing_data/{FEATURES}/{training_languages_str}.npy'
+    features_npy = f'./features/{FEATURES}/{MAX_PER_LANG}_{training_languages_str}.npy'
+    info_data_npy = f'./testing_data/{FEATURES}/{MAX_PER_LANG}_{training_languages_str}.npy'
     model_file = f'./models/{FEATURES}/{training_languages_str}.h5'
 
 
