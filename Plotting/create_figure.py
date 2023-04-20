@@ -18,7 +18,6 @@ accuracies, languages,colours = zip(*sorted(zip(accuracies, languages,colours)))
 fig, ax = plt.subplots()
 bars = ax.bar(languages, accuracies, color = colours)
 
-ax.bar_label(bars, fmt = "%.2f")
 # Add axis labels
 plt.xlabel('L1 Language')
 plt.ylabel('Accuracy')
@@ -37,6 +36,10 @@ plt.savefig('./Plotting/languages_comp.png')
 # Lists for the data
 numbers = [200,         651,        85,         97    ,   156   ,      81        ,     235]
 languages = ["Arabic", "English", "French", "Korean", "Mandarin" ,"Russian",  "Spanish"]
+
+numbers = [200,         651,        85,        156       ,     235]
+languages = ["Arabic", "English", "French", "Mandarin" ,  "Spanish"]
+
 # colours = ['c','r','m','b','g','y']
 # Create the bar chart
 
@@ -49,10 +52,18 @@ languages = ["Arabic", "English", "French", "Korean", "Mandarin" ,"Russian",  "S
 fig, ax = plt.subplots()
 bars = ax.bar(languages, numbers)
 
-ax.bar_label(bars, fmt = "%d")
+for bar in bars:
+    height = bar.get_height()
+    ax.annotate(f'{height:d}',
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha='center', va='bottom')
+
 # Add axis labels
 plt.xlabel('Speaker\'s L1 Language')
 plt.ylabel('Number Of Samples')
+plt.ylim(top = 700)
 plt.title('Accent Sample Distribution')
 
 
