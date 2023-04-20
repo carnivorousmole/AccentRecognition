@@ -60,6 +60,7 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
+# TODO: actually implement this level of overwrite control
 OVERWRITE_INDIV_FEATURE_FILES = False # If set to true, the model will not use any already features- creating everything from scratch
 OVERWRITE_FEATURE_FILES = True # If set to true, the model will not use any already created features sets (ie train test splits)
 OVERWRITE_MODEL_FILES = True
@@ -75,9 +76,11 @@ NUM_CNN_LAYERS = 4 # The number of CNN layers to use
 MAX_POOL_4 = False # If set to true, the model will use a max pooling layer after the 3rd and 4th layers
 
 # what languages to use
-LANG_SET = 'en_ar_mn_64mel_' 
+# LANG_SET = 'en_ar_mn_64mel_' 
+LANG_SET = 'en_ar_mn_fr_sp_64mel_' 
 
-FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
+
+FEATURES = 'mfcc'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
 
 UNSILENCE = False
@@ -101,7 +104,7 @@ SELECT_FEATURES = False  # [whether to use feature selection method]
 CHECK_DATASETS = False
 FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in filtered_filenames.txt]
 
-EPOCHS = 250  # [Number of training epochs]
+EPOCHS = 500  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
 KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (2, 2)  # (2, 2) (3, 3)
@@ -176,6 +179,9 @@ def extract_features(audio_file,features_string):
         if 'mfcc' in features_string:
             mfccs = derive_mfcc(audio_file, y)
             features.append(mfccs)
+        if 'mhfcc' in features_string:
+            mhfccs = derive_mhfcc(audio_file, y)
+            features.append(mhfccs)
         if 'f0' in features_string:
             f0 = derive_f0(audio_file, y)
         if 'cen' in features_string:
@@ -196,7 +202,6 @@ def extract_features(audio_file,features_string):
         if 'fbe' in features_string:
             mel_s = derive_mel_s(audio_file, y)
             features.append(mel_s)
-
         if 'hil' in features_string:       
             hil_s = derive_hilbert_s(audio_file, y)
             features.append(hil_s)
@@ -208,8 +213,8 @@ def extract_features(audio_file,features_string):
         np.save(saved_filepath, features)
     else:
         logger.debug('Loading extracted features from file: '+saved_filepath)
-        features = np.load(saved_filepath)
-        
+        features = np.load(saved_filepath)      
+    
     return features
 
 
@@ -245,6 +250,23 @@ def normalize_scalar_feature(feature_vector):
     std = np.std(feature_vector, dtype=np.float64)
     feature_vector_normalized = (feature_vector - mean) / std
     return feature_vector_normalized
+
+def derive_mhfcc(audio_file, y):
+    """
+    Derives Mel-Cepstral coefficients from each frame of an audio file - HILBERT VERSION
+    Coefficients are normalized for each audio file to deal with
+    the difference in volume and background noise.
+    :param audio_file: (String) Relative audio file name
+    :param y: (numpy.ndarray) Loaded and resampled at SAMPLE_RATE audio file
+    :return: (numpy.ndarray) Vectors of normalized MFCC
+    """
+    logger.debug(f'Extracting MHFCC for {audio_file}...')
+
+    hil_s = derive_hilbert_s(audio_file, y, LOG_NORM_OVERRIDE = True)
+
+    mhfcc = librosa.feature.mfcc(S=hil_s, sr=SAMPLE_RATE, n_mfcc=13, hop_length=HOP_LENGTH, win_length=WIN_LENGTH)
+    mhfcc_normalized = normalize_feature_vectors(mhfcc)
+    return mhfcc_normalized
 
 
 def derive_mfcc(audio_file, y):
@@ -283,7 +305,7 @@ def downsample(arr, N2):
         # TODO not sure if should be mean or sum...
     return result
 
-def derive_hilbert_s(audio_file, y): 
+def derive_hilbert_s(audio_file, y,  LOG_NORM_OVERRIDE = False): 
     """
     Derives Hilbert Spectrum
     """
@@ -310,10 +332,11 @@ def derive_hilbert_s(audio_file, y):
     # plt.title('Log-magnitude Mel-frequency Spectrogram')
     # plt.tight_layout()
     # plt.show()
-    if HIL_S_LOG:
+    if HIL_S_LOG or LOG_NORM_OVERRIDE:
         hil_s = librosa.power_to_db(hil_s)
-    hil_s_normalized = normalize_feature_vectors(hil_s)
-    return hil_s_normalized
+    if not LOG_NORM_OVERRIDE:
+        hil_s = normalize_feature_vectors(hil_s)
+    return hil_s
 
 
 def mel_spectrum_transform(spectrum, sample_rate, n_mels=128, fmin=0, fmax=None):
