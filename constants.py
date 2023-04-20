@@ -7,7 +7,7 @@ AUDIOS_INFO_FILE_NAME = './mfccs.csv'
 FILTERED_AUDIOS_INFO_FILE_NAME = './filtered_mfccs.csv'
 SAMPLE_FILE_NAME = '{}.mp3'
 # AUDIO_INPUT_PATH = "/Users/dylanwalsh/Code/input/audio_files/audios"
-AUDIO_INPUT_PATH = "/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_"
+AUDIO_INPUT_PATH = "../input/audio_files/audios_word_split/please_call_Stella_"
 SAVED_FEATURES_PATH = "./features/isolated_features/"
 
 LANGUAGES = {
@@ -38,4 +38,10 @@ LANGUAGES = {
     # 'ta': 'tajiki',
     # 'ur': 'urdu',
     'vi': 'vietnamese'
+}
+
+FEATURES = {
+    'mfcc': 'MFCCs',
+    'fbe': 'Mel-Spectrogram',
+    'hil': 'Hilbert Mel-Spectrogram'
 }
