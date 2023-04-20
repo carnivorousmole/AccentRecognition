@@ -60,14 +60,15 @@ def create_experiment():
 
 """Parameters to adjust"""
 # Overwrite Files Option
-OVERWRITE_FEATURE_FILES = False # If set to true, the model will not use any already created models or features - creating everything from scratch
+OVERWRITE_INDIV_FEATURE_FILES = False # If set to true, the model will not use any already features- creating everything from scratch
+OVERWRITE_FEATURE_FILES = True # If set to true, the model will not use any already created features sets (ie train test splits)
 OVERWRITE_MODEL_FILES = True
 
 SEGMENT_DATA = False # If set to False, the data will not be split into frames at all
 PRE_SEGMENT_DATA = True # If set to true, the data will be segmented prior to train test split
 # Shortening Clips Option
-SHORTEN_CLIPS = False # Shortens the clips, set to False if the clips have already been manually shortened
-NUM_SECONDS = 10 #the number of seconds of the clip to use
+# SHORTEN_CLIPS = False # Shortens the clips, set to False if the clips have already been manually shortened
+NUM_SECONDS = None #the number of seconds of the clip to use, set to None if not using
 START_TIME = 0.5 #the number of seconds to start the clip at
 NORMALIZE_BY_ROW = False # If set to true, the data will be normalized by row
 NUM_CNN_LAYERS = 4 # The number of CNN layers to use
@@ -75,10 +76,6 @@ MAX_POOL_4 = False # If set to true, the model will use a max pooling layer aft
 
 # what languages to use
 LANG_SET = 'en_ar_mn_64mel_' 
-# LANG_SET = 'en_fr_sp_ru_64mel_'
-# LANG_SET = 'en_sp_ar_mn_64mel_' 
-# LANG_SET = 'en_ge_sw_du_ru_po_fr_it_sp_64mel_' 
-# LANG_SET = 'ru_po_64mel_'  
 
 FEATURES = 'hil'  # mfcc / f0 / cen / rol / chroma / rms / zcr / fbe [Feature types] mfcc_f0_cen_rol_chroma_rms_zcr
 MAX_PER_LANG = 150  # maximum number of audios of a language
@@ -104,7 +101,7 @@ SELECT_FEATURES = False  # [whether to use feature selection method]
 CHECK_DATASETS = False
 FILTER_INPUT_DATA = True  # [whether to filter the input data to only samples in filtered_filenames.txt]
 
-EPOCHS = 300  # [Number of training epochs]
+EPOCHS = 250  # [Number of training epochs]
 BATCH_SIZE = 64  # size of mini-batch used
 KERNEL_SIZE = (3, 3)  # (3, 3) (5, 5)
 POOL_SIZE = (2, 2)  # (2, 2) (3, 3)
@@ -155,74 +152,64 @@ def extract_features(audio_file,features_string):
     Extracts features from audio files.
     Different kinds of features are concatenated subsequently.
     :param audio_file: (String) path to a .wav audio file
+    features_string: (String) string of features to extract
     :return: (numpy.ndarray) feature matrices
     (columns == FRAME_SIZE, rows == number of features)
     """
-    if not Path(audio_file).exists():
-        logger.warning(f"Audio file {audio_file} is not found. Check the dataset")
-        return
-    y, sr = librosa.load(audio_file, sr=None)
-    y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
-    s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
+    features_dir = constants.SAVED_FEATURES_PATH +  AUDIO_INPUT_PATH.split('/')[-1]
+    saved_filepath = features_dir +"/"+ features_string +"_" +os.path.basename(audio_file.replace('.wav','.npy'))
+    Path(features_dir).mkdir(parents=True, exist_ok=True)
 
-    if(SHORTEN_CLIPS):
-        y = trim_sound(y,SAMPLE_RATE,START_TIME,NUM_SECONDS) # shorten the length of the clip
+    if OVERWRITE_FEATURE_FILES or not Path(saved_filepath).exists():
 
-    features = []
-    if 'mfcc' in features_string:
-        mfccs = derive_mfcc(audio_file, y)
-        features.append(mfccs)
-    if 'f0' in features_string:
-        f0 = derive_f0(audio_file, y)
-    if 'cen' in features_string:
-        spectral_centroid = derive_spectral_centroid(audio_file, y)
-        features.append(spectral_centroid)
-    if 'rol' in features_string:
-        spectral_rolloff = derive_spectral_rolloff(audio_file, y)
-        features.append(spectral_rolloff)
-    if 'chroma' in features_string:
-        chromagram = derive_chromagram(audio_file, y)
-        features.append(chromagram)
-    if 'rms' in features_string:
-        rms = derive_rms(audio_file, s)
-        features.append(rms)
-    if 'zcr' in features_string:
-        zcr = derive_zcr(audio_file, y)
-        features.append(zcr)
-    if 'fbe' in features_string:
-        filepath = constants.SAVED_FEATURES_PATH + "fbe_"+os.path.basename(audio_file.replace('.wav','.npy'))
-        if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
+        if not Path(audio_file).exists():
+            logger.warning(f"Audio file {audio_file} is not found. Check the dataset")
+            return
+        y, sr = librosa.load(audio_file, sr=None)
+        y = librosa.core.resample(y=y, orig_sr=sr, target_sr=SAMPLE_RATE, scale=True) #resample at defined SAMPLE_RATE
+        s, _ = librosa.magphase(librosa.stft(y, hop_length=HOP_LENGTH, win_length=WIN_LENGTH))  # magnitudes of spectrogram
+
+        if(NUM_SECONDS):
+            y = trim_sound(y,SAMPLE_RATE,START_TIME,NUM_SECONDS) # shorten the length of the clip
+
+        features = []
+        if 'mfcc' in features_string:
+            mfccs = derive_mfcc(audio_file, y)
+            features.append(mfccs)
+        if 'f0' in features_string:
+            f0 = derive_f0(audio_file, y)
+        if 'cen' in features_string:
+            spectral_centroid = derive_spectral_centroid(audio_file, y)
+            features.append(spectral_centroid)
+        if 'rol' in features_string:
+            spectral_rolloff = derive_spectral_rolloff(audio_file, y)
+            features.append(spectral_rolloff)
+        if 'chroma' in features_string:
+            chromagram = derive_chromagram(audio_file, y)
+            features.append(chromagram)
+        if 'rms' in features_string:
+            rms = derive_rms(audio_file, s)
+            features.append(rms)
+        if 'zcr' in features_string:
+            zcr = derive_zcr(audio_file, y)
+            features.append(zcr)
+        if 'fbe' in features_string:
             mel_s = derive_mel_s(audio_file, y)
-            # save the array to file
-            np.save(filepath, mel_s)
-            # mel_s_as_int8 = mel_s.astype(np.uint8)
-            # cv2.imwrite(filepath, mel_s_as_int8)
+            features.append(mel_s)
 
-        else:
-            # load the array from file
-            mel_s = np.load(filepath)
-            logger.debug('mel_s loaded from file...')
-
-        features.append(mel_s)
-
-    if 'hil' in features_string:
-        filepath = constants.SAVED_FEATURES_PATH + "hil_"+os.path.basename(audio_file.replace('.wav','.npy'))
-        # print("FILENAME IS: " +filepath)
-        if OVERWRITE_FEATURE_FILES or not os.path.isfile(filepath):
+        if 'hil' in features_string:       
             hil_s = derive_hilbert_s(audio_file, y)
-            # save the array to file
-            np.save(filepath, hil_s)
-        else:
-            # load the array from file
-            hil_s = np.load(filepath)
-            logger.debug('Hilbert Spectrum loaded from file...')
+            features.append(hil_s)
 
-
-        features.append(hil_s)
-
-    logger.debug('Concatenating extracted features...')
-    features = np.vstack(features)
-    logger.debug(f'Shape of concatenated features: {features.shape}')
+        logger.debug('Concatenating extracted features...')
+        features = np.vstack(features)
+        logger.debug(f'Shape of concatenated features: {features.shape}')
+        logger.debug('Saving extracted features to file: '+saved_filepath)
+        np.save(saved_filepath, features)
+    else:
+        logger.debug('Loading extracted features from file: '+saved_filepath)
+        features = np.load(saved_filepath)
+        
     return features
 
 
@@ -937,16 +924,17 @@ def main():
     create_experiment()
 
     logger.debug('Creating saving directories if they do not yet exist..')
-
-    Path(f'./features/{FEATURES}').mkdir(parents=True, exist_ok=True)
-    Path(f'./testing_data/{FEATURES}').mkdir(parents=True, exist_ok=True)
-    Path(f'./models/{FEATURES}').mkdir(parents=True, exist_ok=True)
+    # get the last element of the path
+    audio_input_path_split = AUDIO_INPUT_PATH.split('/')[-1]
+    Path(f'./features/{FEATURES}/{audio_input_path_split}').mkdir(parents=True, exist_ok=True)
+    Path(f'./testing_data/{FEATURES}/{audio_input_path_split}').mkdir(parents=True, exist_ok=True)
+    Path(f'./models/{FEATURES}/{audio_input_path_split}').mkdir(parents=True, exist_ok=True)
 
     logger.debug('Defining saving file names...')
 
-    features_npy = f'./features/{FEATURES}/{training_languages_str}.npy'
-    info_data_npy = f'./testing_data/{FEATURES}/{training_languages_str}.npy'
-    model_file = f'./models/{FEATURES}/{training_languages_str}.h5'
+    features_npy = f'./features/{FEATURES}/{audio_input_path_split}/{training_languages_str}.npy'
+    info_data_npy = f'./testing_data/{FEATURES}/{audio_input_path_split}/{training_languages_str}.npy'
+    model_file = f'./models/{FEATURES}/{audio_input_path_split}/{training_languages_str}.h5'
 
 
     if OVERWRITE_FEATURE_FILES or not Path.exists(Path(features_npy)) or not Path.exists(Path(info_data_npy)):
@@ -965,7 +953,7 @@ def main():
             return -1
         x_train, x_test, y_train, y_test, train_count, test_count, languages_mapping = preprocess
     else:
-        logger.debug('Getting input data from file')
+        logger.debug('Getting input data from file: ' + features_npy)
         x_train, x_test, y_train, y_test, train_count, test_count, languages_mapping = open_preprocessed_data()
 
     logger.debug('Selecting features...')
