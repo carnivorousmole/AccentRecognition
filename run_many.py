@@ -22,7 +22,7 @@ FOREIGN_LANGUAGES = {
 standard_set = "ar_mn_en_64mel_"
 
 FEATURES = [ 'f0' , 'cen'] 
-FEATURES_ALL = ['mfcc','fbe','hil' ] 
+FEATURES_ALL = ['mfcc','mhfcc','fbe','hil' ] 
 
 def today():
     return datetime.datetime.now().strftime("%d_%b")
@@ -262,30 +262,30 @@ def word_segment_tests():
                 print(e)
 
 
-def lang_features_test():
-    # create dictionary to store results
-    results = {}
-    # for lang in ["ar", "mn" ,"sp" , "fr", "ar_mn_sp_fr"]:
-    for lang in ["ar_mn","fr_sp"]:
-            lang = lang + "_en_64mel_"
-            for f in FEATURES_ALL:
-                try:
-                    metric = run(lang_set_config=lang, features_config=f, expt_name_config=lang+"_"+f, project_name_config=today()+"_lang_features_test_3")
-                    # add resullts to dictionary
-                    results[(lang, f)] = metric["accuracy"]
-                except Exception as e:
-                    print(e)
-    # save results to file
-    with open("lang_features_test.txt", "w") as f:
-        f.write(str(results))
-    # plot results as grouped bar
-    fig, ax = plt.subplots()
-    for i, (lang_set, feature) in enumerate(results.keys()):
-        ax.bar(i, results[(lang_set, feature)], label=f"{lang_set} - {feature}")
-    ax.set_xticks(range(len(results)))
-    ax.set_xticklabels([f"{lang_set}\n{feature}" for (lang_set, feature) in results.keys()], rotation=45, ha="right")
-    ax.set_xlabel("Language Set and Feature")
-    ax.set_ylabel("Accuracy")
+# def lang_features_test():
+#     # create dictionary to store results
+#     results = {}
+#     for lang in ["ar", "mn" ,"sp" , "fr", "ar_mn_sp_fr"]:
+#     # for lang in ["ar_mn","fr_sp"]:
+#             lang = lang + "_en_64mel_"
+#             for f in FEATURES_ALL:
+#                 try:
+#                     metric = run(lang_set_config=lang, features_config=f, expt_name_config=lang+"_"+f, project_name_config=today()+"_lang_features_test_3")
+#                     # add resullts to dictionary
+#                     results[(lang, f)] = metric["accuracy"]
+#                 except Exception as e:
+#                     print(e)
+#     # save results to file
+#     with open("lang_features_test.txt", "w") as f:
+#         f.write(str(results))
+#     # plot results as grouped bar
+#     fig, ax = plt.subplots()
+#     for i, (lang_set, feature) in enumerate(results.keys()):
+#         ax.bar(i, results[(lang_set, feature)], label=f"{lang_set} - {feature}")
+#     ax.set_xticks(range(len(results)))
+#     ax.set_xticklabels([f"{lang_set}\n{feature}" for (lang_set, feature) in results.keys()], rotation=45, ha="right")
+#     ax.set_xlabel("Language Set and Feature")
+#     ax.set_ylabel("Accuracy")
 
 
 
@@ -325,6 +325,45 @@ def max_pool_4_test():
 
 
 
+def lang_features_test():
+    test_name = "lang_features" + "_" + today()
+    num_average = 3
+
+    # create dictionary to store results
+    results = {}
+
+    # loop over something
+    for lang in ["ar", "mn" ,"sp" , "fr", "ar_mn_sp_fr"]:
+        lang = lang + "_en_64mel_"
+        # loop over something else            
+        for f in FEATURES_ALL:
+             for i in range(num_average):
+                try:
+                    metric = run(lang_set_config=lang, 
+                                features_config=f, 
+                                expt_name_config=lang+"_"+f, 
+                                project_name_config= test_name,
+                                    audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split_by_numbers2/4")
+
+                    # store results in dictionary indexed by loop variables
+                    if (lang, f) in results:
+                        results[(lang, f)].append(metric["accuracy"])
+                    else:
+                        results[(lang, f)] = [metric["accuracy"]]
+                        
+                except Exception as e:
+                    print(e)
+
+    # average results
+    averages = {k: sum(v)/len(v) for k, v in results.items()}
+
+
+    # save results to file
+    with open("results/"+ test_name +".txt", "w") as f:
+        f.write(str(averages))
+
+
+
 
 def test_template():
     test_name = "test_template" + "_" + today()
@@ -343,7 +382,7 @@ def test_template():
                                 features_config=f, 
                                 expt_name_config=lang+"_"+f, 
                                 project_name_config= test_name,
-                                    audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split/please_call_Stella_ask_")
+                                    audio_input_path_config="/Users/dylanwalsh/Code/input/audio_files/audios_word_split_by_numbers2/4")
 
                     # store results in dictionary indexed by loop variables
                     if (lang, f) in results:
@@ -368,5 +407,6 @@ if __name__ == '__main__':
     # fixed_trim_test()
     # single_word_test()
     # multi_word_test()
-    multi_word_test_numbers()
+    # multi_word_test_numbers()
+    lang_features_test()
   
