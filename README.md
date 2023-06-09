@@ -10,7 +10,7 @@ The steps below were tested with Python 3.8 (Ubuntu) and Python 3.9 and 3.10 (ma
 
 ### Clone Repository and Install Python Dependencies
 1. Open the Terminal (or Command Prompt on Windows), clone the repository and navigate into the directory:
-`git clone https://github.com/ver0nika4ka/AccentRecognition.git && cd AccentRecognition` 
+`git clone https://github.com/dowalsh/AccentRecognition_Dylan.git && cd AccentRecognition` 
 2. Create a virtual environment and activate it:
 - ***Unix-based system***:
     `python3 -m venv accent-env && source accent-env/bin/activate`
@@ -85,3 +85,5 @@ Once you have all the data downloaded and preprocessed, you can run feature extr
 python3 build_model.py
 ```
 See `Parameters to adjust` section in `build_model.py` on how to change the language sets and specify what features to extract and use for training.
+
+
